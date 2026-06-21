@@ -14,8 +14,12 @@ function getStorePath(): string {
 
 export function readStore(): Store {
   try {
-    const raw = fs.readFileSync(getStorePath(), 'utf-8')
-    return { ...structuredClone(DEFAULT_STORE), ...JSON.parse(raw) }
+    const raw = JSON.parse(fs.readFileSync(getStorePath(), 'utf-8')) as Partial<Store>
+    const store = structuredClone(DEFAULT_STORE)
+    if (raw.settings) Object.assign(store.settings, raw.settings)
+    if (raw.cache) Object.assign(store.cache, raw.cache)
+    if (raw.sessions) Object.assign(store.sessions, raw.sessions)
+    return store
   } catch {
     return structuredClone(DEFAULT_STORE)
   }

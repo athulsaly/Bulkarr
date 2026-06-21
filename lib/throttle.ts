@@ -5,17 +5,18 @@ export async function throttledBatch<T, R>(
 ): Promise<R[]> {
   if (!items.length) return []
   const results: R[] = new Array(items.length)
-  let next = 0
-  let lastDispatch = 0
+  let nextIndex = 0
+  let nextDispatchAllowedAt = 0
 
   async function worker() {
-    while (next < items.length) {
-      const i = next++
-      if (delayMs > 0) {
-        const wait = lastDispatch + delayMs - Date.now()
-        if (wait > 0) await new Promise(r => setTimeout(r, wait))
-      }
-      lastDispatch = Date.now()
+    while (nextIndex < items.length) {
+      const i = nextIndex++
+      // Schedule this dispatch: read + write nextDispatchAllowedAt synchronously
+      // (before any await) so JS single-thread guarantees no interleaving.
+      const scheduledAt = Math.max(Date.now(), nextDispatchAllowedAt)
+      if (delayMs > 0) nextDispatchAllowedAt = scheduledAt + delayMs
+      const wait = scheduledAt - Date.now()
+      if (wait > 0) await new Promise<void>(r => setTimeout(r, wait))
       results[i] = await fn(items[i], i)
     }
   }
