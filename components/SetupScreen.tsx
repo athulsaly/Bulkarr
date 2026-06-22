@@ -91,6 +91,10 @@ export function SetupScreen({ hook, onComplete }: Props) {
         ...(hasRadarr ? { radarr: { url: radarrUrl, apiKey: radarrKey } } : {}),
         ...(hasSonarr ? { sonarr: { url: sonarrUrl, apiKey: sonarrKey } } : {}),
       })
+      await Promise.all([
+        hasRadarr ? hook.refreshCache('radarr') : Promise.resolve(),
+        hasSonarr ? hook.refreshCache('sonarr') : Promise.resolve(),
+      ])
       onComplete()
     } catch {
       setError('Failed to save settings.')
