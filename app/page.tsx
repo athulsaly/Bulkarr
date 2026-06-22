@@ -11,7 +11,7 @@ import { InputPanel } from '@/components/InputPanel'
 import { ReviewTable } from '@/components/ReviewTable'
 import { ToastStack } from '@/components/ToastStack'
 import { SetupScreen } from '@/components/SetupScreen'
-import type { ReviewRow } from '@/lib/types'
+import type { ReviewRow, Target } from '@/lib/types'
 
 export default function Page() {
   const [drawerOpen, setDrawerOpen] = useState(false)
@@ -19,24 +19,28 @@ export default function Page() {
   const settingsHook = useSettings()
   const [setupDone, setSetupDone] = useState(false)
 
-  const session = useSession(null, 'movies')
+  // Independent session per target — switching tabs preserves both states
+  const [activeTarget, setActiveTarget] = useState<Target>('movies')
+  const moviesSession = useSession(null, 'movies')
+  const seriesSession = useSession(null, 'series')
+  const session = activeTarget === 'movies' ? moviesSession : seriesSession
 
   const { lookup, progress, running: lookupRunning } = useLookup()
   const { submit, submitting, summary, clearSummary } = useSubmit()
 
   const handleLookup = useCallback(async () => {
     clearSummary()
-    const rows = await lookup(session.rawInput, session.target, settingsHook.cache)
+    const rows = await lookup(session.rawInput, activeTarget, settingsHook.cache)
     session.setRows(rows)
     if (rows.every(r => r.status === 'no_match')) {
       addToast('No matches found', 'error')
     }
-  }, [session, lookup, settingsHook.cache, addToast, clearSummary])
+  }, [session, activeTarget, lookup, settingsHook.cache, addToast, clearSummary])
 
   const handleSubmit = useCallback(async () => {
-    const s = await submit(session.rows, session.target, session.defaults, session.updateRow)
+    const s = await submit(session.rows, activeTarget, session.defaults, session.updateRow)
     addToast(`Done — ${s.added} added · ${s.skipped} skipped · ${s.failed} failed`, s.failed > 0 ? 'error' : 'success')
-  }, [session, submit, addToast])
+  }, [session, activeTarget, submit, addToast])
 
   const handleDeleteRow = useCallback((id: string) => {
     session.setRows(session.rows.filter(r => r.id !== id))
@@ -77,8 +81,8 @@ export default function Page() {
       <SettingsDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} hook={settingsHook} onToast={addToast} />
 
       <DefaultsBar
-        target={session.target}
-        onTargetChange={t => { session.setTarget(t); session.setRows([]) }}
+        target={activeTarget}
+        onTargetChange={setActiveTarget}
         defaults={session.defaults}
         onDefaultsChange={session.setDefaults}
         cache={settingsHook.cache}
@@ -97,7 +101,7 @@ export default function Page() {
           rows={session.rows}
           defaults={session.defaults}
           cache={settingsHook.cache}
-          target={session.target}
+          target={activeTarget}
           cardView={tmdbConfigured}
           onUpdateRow={session.updateRow}
           onDeleteRow={handleDeleteRow}
