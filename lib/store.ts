@@ -6,6 +6,7 @@ const DEFAULT_STORE: Store = {
   settings: { radarr: null, sonarr: null },
   cache: { radarr: null, sonarr: null },
   sessions: { movies: null, series: null },
+  history: [],
 }
 
 function getStorePath(): string {
@@ -19,6 +20,7 @@ export function readStore(): Store {
     if (raw.settings) Object.assign(store.settings, raw.settings)
     if (raw.cache) Object.assign(store.cache, raw.cache)
     if (raw.sessions) Object.assign(store.sessions, raw.sessions)
+    if (Array.isArray(raw.history)) store.history = raw.history
     return store
   } catch {
     return structuredClone(DEFAULT_STORE)

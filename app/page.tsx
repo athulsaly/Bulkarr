@@ -11,10 +11,14 @@ import { InputPanel } from '@/components/InputPanel'
 import { ReviewTable } from '@/components/ReviewTable'
 import { ToastStack } from '@/components/ToastStack'
 import { SetupScreen } from '@/components/SetupScreen'
+import { HistoryDrawer } from '@/components/HistoryDrawer'
+import { NoMatchDrawer } from '@/components/NoMatchDrawer'
 import type { Target } from '@/lib/types'
 
 export default function Page() {
   const [drawerOpen, setDrawerOpen] = useState(false)
+  const [historyOpen, setHistoryOpen] = useState(false)
+  const [noMatchOpen, setNoMatchOpen] = useState(false)
   const { toasts, addToast, dismiss } = useToast()
   const settingsHook = useSettings()
   const [setupDone, setSetupDone] = useState(false)
@@ -50,6 +54,18 @@ export default function Page() {
     session.setRows(session.rows.map(r => (r.status === 'no_match' || r.status === 'in_library') ? r : { ...r, included }))
   }, [session])
 
+  const noMatchEntries = [
+    ...moviesSession.rows.filter(r => r.status === 'no_match').map(row => ({ row, target: 'movies' as Target })),
+    ...seriesSession.rows.filter(r => r.status === 'no_match').map(row => ({ row, target: 'series' as Target })),
+  ]
+
+  const handleRetry = useCallback((text: string, target: Target) => {
+    if (target === 'movies') moviesSession.setRawInput(moviesSession.rawInput ? moviesSession.rawInput + '\n' + text : text)
+    else seriesSession.setRawInput(seriesSession.rawInput ? seriesSession.rawInput + '\n' + text : text)
+    setActiveTarget(target)
+    setNoMatchOpen(false)
+  }, [moviesSession, seriesSession])
+
   const tmdbConfigured = !!settingsHook.settings.tmdbApiKey
   const includedMatchedCount = session.rows.filter(r => r.included && (r.status === 'matched' || r.status === 'in_library')).length
 
@@ -69,16 +85,25 @@ export default function Page() {
       {/* Top bar */}
       <header className="flex items-center justify-between px-4 py-3 bg-slate-800 border-b border-slate-700 shrink-0">
         <span className="font-bold text-orange-500 tracking-tight">Bulkarr</span>
-        <button
-          onClick={() => setDrawerOpen(true)}
-          className="text-slate-400 hover:text-slate-100 transition-colors text-lg"
-          title="Settings"
-        >
-          ⚙
-        </button>
+        <div className="flex items-center gap-3">
+          {noMatchEntries.length > 0 && (
+            <button onClick={() => setNoMatchOpen(true)} className="flex items-center gap-1 text-xs text-red-400 hover:text-red-300 transition-colors" title="No matches">
+              No Matches
+              <span className="bg-red-800 text-red-200 rounded-full px-1.5 py-0.5 text-xs leading-none">{noMatchEntries.length}</span>
+            </button>
+          )}
+          <button onClick={() => setHistoryOpen(true)} className="text-slate-400 hover:text-slate-100 transition-colors text-sm" title="History">
+            History
+          </button>
+          <button onClick={() => setDrawerOpen(true)} className="text-slate-400 hover:text-slate-100 transition-colors text-lg" title="Settings">
+            ⚙
+          </button>
+        </div>
       </header>
 
       <SettingsDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} hook={settingsHook} onToast={addToast} />
+      <HistoryDrawer open={historyOpen} onClose={() => setHistoryOpen(false)} />
+      <NoMatchDrawer open={noMatchOpen} onClose={() => setNoMatchOpen(false)} entries={noMatchEntries} onRetry={handleRetry} />
 
       <DefaultsBar
         target={activeTarget}

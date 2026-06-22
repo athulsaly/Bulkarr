@@ -88,10 +88,22 @@ export interface Cache {
   sonarr: ServiceCache | null
 }
 
+export interface HistoryItem {
+  id: string
+  title: string
+  year?: number
+  target: 'movies' | 'series'
+  tmdbId?: number
+  tvdbId?: number
+  remotePoster?: string
+  addedAt: number
+}
+
 export interface Store {
   settings: Settings
   cache: Cache
   sessions: { movies: Session | null; series: Session | null }
+  history: HistoryItem[]
 }
 
 export type ArrErrorCode = 'UNREACHABLE' | 'AUTH_FAILED' | 'BAD_REQUEST' | 'NOT_FOUND' | 'UNKNOWN'

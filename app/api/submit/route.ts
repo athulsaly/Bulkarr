@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { readStore } from '@/lib/store'
+import { readStore, updateStore } from '@/lib/store'
 import { addMovie, addSeries, ArrApiError } from '@/lib/arr-client'
 import { throttledBatch } from '@/lib/throttle'
 import type { ReviewRow, DefaultsConfig, SubmitResult } from '@/lib/types'
@@ -46,6 +46,17 @@ export async function POST(req: NextRequest) {
     },
     { concurrency: 3, delayMs: 300 }
   )
+
+  const addedRows = rows.filter((_, i) => results[i]?.status === 'added')
+  if (addedRows.length) {
+    updateStore(s => {
+      for (const row of addedRows) {
+        const item = row.candidates[row.selectedIndex]
+        s.history.unshift({ id: row.id, title: item.title, year: item.year, target, tmdbId: item.tmdbId, tvdbId: item.tvdbId, remotePoster: item.remotePoster, addedAt: Date.now() })
+      }
+      if (s.history.length > 500) s.history = s.history.slice(0, 500)
+    })
+  }
 
   return NextResponse.json({ results })
 }
