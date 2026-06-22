@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
+import { Spinner } from './Spinner'
 import type { useSettings } from '@/hooks/useSettings'
 
 type SettingsHook = ReturnType<typeof useSettings>
@@ -76,8 +77,9 @@ function ServiceSection({
         <button
           onClick={handleTest}
           disabled={hook.testing === name}
-          className="flex-1 rounded bg-slate-700 hover:bg-slate-600 px-3 py-1.5 text-sm transition-colors disabled:opacity-50"
+          className="flex-1 flex items-center justify-center gap-1.5 rounded bg-slate-700 hover:bg-slate-600 px-3 py-1.5 text-sm transition-colors disabled:opacity-50"
         >
+          {hook.testing === name && <Spinner className="w-3.5 h-3.5" />}
           {hook.testing === name ? 'Testing…' : 'Test'}
         </button>
       </div>
@@ -89,8 +91,9 @@ function ServiceSection({
       <button
         onClick={handleRefreshCache}
         disabled={hook.refreshing === name}
-        className="w-full rounded bg-slate-800 hover:bg-slate-700 border border-slate-600 px-3 py-1.5 text-xs text-slate-400 transition-colors disabled:opacity-50"
+        className="w-full flex items-center justify-center gap-1.5 rounded bg-slate-800 hover:bg-slate-700 border border-slate-600 px-3 py-1.5 text-xs text-slate-400 transition-colors disabled:opacity-50"
       >
+        {hook.refreshing === name && <Spinner className="w-3 h-3" />}
         {hook.refreshing === name ? 'Refreshing cache…' : 'Refresh Cache'}
       </button>
     </div>

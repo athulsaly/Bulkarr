@@ -1,5 +1,6 @@
 'use client'
 import { useState } from 'react'
+import { Spinner } from './Spinner'
 import type { useSettings } from '@/hooks/useSettings'
 
 type SettingsHook = ReturnType<typeof useSettings>
@@ -144,8 +145,9 @@ export function SetupScreen({ hook, onComplete }: Props) {
           <button
             onClick={handleSave}
             disabled={saving}
-            className="w-full rounded bg-orange-600 hover:bg-orange-500 disabled:opacity-50 py-2 font-semibold text-sm transition-colors"
+            className="w-full flex items-center justify-center gap-2 rounded bg-orange-600 hover:bg-orange-500 disabled:opacity-50 py-2 font-semibold text-sm transition-colors"
           >
+            {saving && <Spinner className="w-4 h-4" />}
             {saving ? 'Saving…' : 'Save & Continue'}
           </button>
         </div>

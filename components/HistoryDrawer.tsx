@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect, useCallback } from 'react'
 import Image from 'next/image'
+import { Spinner } from './Spinner'
 import type { HistoryItem } from '@/lib/types'
 
 interface Props {
@@ -67,7 +68,7 @@ export function HistoryDrawer({ open, onClose }: Props) {
         </div>
 
         <div className="flex-1 overflow-y-auto">
-          {loading && <p className="text-center text-slate-500 text-sm py-8">Loading…</p>}
+          {loading && <div className="flex justify-center py-8"><Spinner className="w-5 h-5 text-slate-500" /></div>}
           {!loading && visible.length === 0 && (
             <p className="text-center text-slate-600 text-sm py-12">No history yet</p>
           )}

@@ -5,6 +5,7 @@ import { useSession } from '@/hooks/useSession'
 import { useLookup } from '@/hooks/useLookup'
 import { useSubmit } from '@/hooks/useSubmit'
 import { useToast } from '@/hooks/useToast'
+import { Spinner } from '@/components/Spinner'
 import { SettingsDrawer } from '@/components/SettingsDrawer'
 import { DefaultsBar } from '@/components/DefaultsBar'
 import { InputPanel } from '@/components/InputPanel'
@@ -30,7 +31,7 @@ export default function Page() {
   const session = activeTarget === 'movies' ? moviesSession : seriesSession
 
   const { lookup, progress, running: lookupRunning } = useLookup()
-  const { submit, submitting, summary, clearSummary } = useSubmit()
+  const { submit, submitting, summary, progress: submitProgress, clearSummary } = useSubmit()
 
   const handleLookup = useCallback(async () => {
     clearSummary()
@@ -73,7 +74,14 @@ export default function Page() {
     !settingsHook.settings.radarr && !settingsHook.settings.sonarr
 
   if (settingsHook.loading) {
-    return <div className="flex min-h-screen items-center justify-center bg-slate-900 text-slate-500 text-sm">Loading…</div>
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-slate-900">
+        <div className="flex flex-col items-center gap-3">
+          <Spinner className="w-8 h-8 text-orange-500" />
+          <span className="text-slate-500 text-sm">Loading…</span>
+        </div>
+      </div>
+    )
   }
 
   if (needsSetup) {
@@ -136,19 +144,36 @@ export default function Page() {
 
       {/* Submit bar */}
       {session.rows.length > 0 && (
-        <footer className="shrink-0 px-4 py-3 bg-slate-800 border-t border-slate-700 flex items-center gap-4">
-          <button
-            onClick={handleSubmit}
-            disabled={submitting || includedMatchedCount === 0}
-            className="rounded bg-orange-600 hover:bg-orange-500 disabled:opacity-40 disabled:cursor-not-allowed px-5 py-2 font-medium text-sm transition-colors"
-          >
-            {submitting ? 'Adding…' : `Add Selected (${includedMatchedCount})`}
-          </button>
-          {summary && (
-            <span className="text-sm text-slate-400">
-              {summary.added} added · {summary.skipped} skipped · {summary.failed} failed
-            </span>
+        <footer className="shrink-0 bg-slate-800 border-t border-slate-700">
+          {submitProgress && (
+            <div className="px-4 pt-2 space-y-1">
+              <div className="flex justify-between text-xs text-slate-500">
+                <span>Adding…</span>
+                <span>{submitProgress.done} / {submitProgress.total}</span>
+              </div>
+              <div className="h-1 w-full bg-slate-700 rounded overflow-hidden">
+                <div
+                  className="h-full bg-orange-500 transition-all duration-200"
+                  style={{ width: `${(submitProgress.done / submitProgress.total) * 100}%` }}
+                />
+              </div>
+            </div>
           )}
+          <div className="px-4 py-3 flex items-center gap-4">
+            <button
+              onClick={handleSubmit}
+              disabled={submitting || includedMatchedCount === 0}
+              className="flex items-center gap-2 rounded bg-orange-600 hover:bg-orange-500 disabled:opacity-40 disabled:cursor-not-allowed px-5 py-2 font-medium text-sm transition-colors"
+            >
+              {submitting && <Spinner className="w-4 h-4" />}
+              {submitting ? 'Adding…' : `Add Selected (${includedMatchedCount})`}
+            </button>
+            {summary && (
+              <span className="text-sm text-slate-400">
+                {summary.added} added · {summary.skipped} skipped · {summary.failed} failed
+              </span>
+            )}
+          </div>
         </footer>
       )}
 

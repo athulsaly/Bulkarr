@@ -1,5 +1,6 @@
 'use client'
 import { useRef } from 'react'
+import { Spinner } from './Spinner'
 
 interface Props {
   value: string
@@ -69,19 +70,26 @@ export function InputPanel({ value, onChange, onLookup, running, progress }: Pro
         className="w-full h-40 rounded bg-slate-800 border border-slate-700 px-3 py-2 text-sm font-mono text-slate-100 placeholder-slate-600 resize-none focus:outline-none focus:border-orange-500"
       />
       {progress && (
-        <div className="h-1.5 w-full bg-slate-700 rounded overflow-hidden">
-          <div
-            className="h-full bg-orange-500 transition-all duration-200"
-            style={{ width: `${(progress.done / progress.total) * 100}%` }}
-          />
+        <div className="space-y-1">
+          <div className="flex justify-between text-xs text-slate-500">
+            <span>Looking up…</span>
+            <span>{progress.done} / {progress.total}</span>
+          </div>
+          <div className="h-1.5 w-full bg-slate-700 rounded overflow-hidden">
+            <div
+              className="h-full bg-orange-500 transition-all duration-200"
+              style={{ width: `${(progress.done / progress.total) * 100}%` }}
+            />
+          </div>
         </div>
       )}
       <div className="flex items-center gap-2">
         <button
           onClick={onLookup}
           disabled={count === 0 || running}
-          className="rounded bg-orange-600 hover:bg-orange-500 disabled:opacity-40 disabled:cursor-not-allowed px-4 py-1.5 text-sm font-medium transition-colors"
+          className="flex items-center gap-2 rounded bg-orange-600 hover:bg-orange-500 disabled:opacity-40 disabled:cursor-not-allowed px-4 py-1.5 text-sm font-medium transition-colors"
         >
+          {running && <Spinner className="w-3.5 h-3.5" />}
           {running ? 'Looking up…' : 'Parse & Look Up'}
         </button>
         <button
