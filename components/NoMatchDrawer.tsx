@@ -11,9 +11,10 @@ interface Props {
   onClose: () => void
   entries: NoMatchEntry[]
   onRetry: (text: string, target: 'movies' | 'series') => void
+  onClear: () => void
 }
 
-export function NoMatchDrawer({ open, onClose, entries, onRetry }: Props) {
+export function NoMatchDrawer({ open, onClose, entries, onRetry, onClear }: Props) {
   const movies = entries.filter(e => e.target === 'movies')
   const series = entries.filter(e => e.target === 'series')
 
@@ -23,7 +24,12 @@ export function NoMatchDrawer({ open, onClose, entries, onRetry }: Props) {
       <div className={`fixed top-0 left-0 z-40 h-full w-80 bg-slate-800 border-r border-slate-700 shadow-xl transform transition-transform duration-200 flex flex-col ${open ? 'translate-x-0' : '-translate-x-full'}`}>
         <div className="flex items-center justify-between px-4 py-3 border-b border-slate-700 shrink-0">
           <span className="font-semibold text-sm">No Matches</span>
-          <button onClick={onClose} className="text-slate-400 hover:text-white text-lg leading-none">×</button>
+          <div className="flex items-center gap-2">
+            {entries.length > 0 && (
+              <button onClick={onClear} className="text-xs text-red-400 hover:text-red-300 transition-colors">Clear all</button>
+            )}
+            <button onClick={onClose} className="text-slate-400 hover:text-white text-lg leading-none">×</button>
+          </div>
         </div>
 
         <div className="flex-1 overflow-y-auto">

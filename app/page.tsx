@@ -60,6 +60,12 @@ export default function Page() {
     ...seriesSession.rows.filter(r => r.status === 'no_match').map(row => ({ row, target: 'series' as Target })),
   ]
 
+  const handleClearNoMatches = useCallback(() => {
+    moviesSession.setRows(moviesSession.rows.filter(r => r.status !== 'no_match'))
+    seriesSession.setRows(seriesSession.rows.filter(r => r.status !== 'no_match'))
+    setNoMatchOpen(false)
+  }, [moviesSession, seriesSession])
+
   const handleRetry = useCallback((text: string, target: Target) => {
     if (target === 'movies') moviesSession.setRawInput(text)
     else seriesSession.setRawInput(text)
@@ -111,7 +117,7 @@ export default function Page() {
 
       <SettingsDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} hook={settingsHook} onToast={addToast} />
       <HistoryDrawer open={historyOpen} onClose={() => setHistoryOpen(false)} />
-      <NoMatchDrawer open={noMatchOpen} onClose={() => setNoMatchOpen(false)} entries={noMatchEntries} onRetry={handleRetry} />
+      <NoMatchDrawer open={noMatchOpen} onClose={() => setNoMatchOpen(false)} entries={noMatchEntries} onRetry={handleRetry} onClear={handleClearNoMatches} />
 
       <DefaultsBar
         target={activeTarget}
