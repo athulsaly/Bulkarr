@@ -47,7 +47,7 @@ export default function Page() {
   }, [session])
 
   const handleToggleAll = useCallback((included: boolean) => {
-    session.setRows(session.rows.map(r => ({ ...r, included })))
+    session.setRows(session.rows.map(r => r.status === 'no_match' ? r : { ...r, included }))
   }, [session])
 
   const tmdbConfigured = !!settingsHook.settings.tmdbApiKey

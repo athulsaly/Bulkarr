@@ -41,8 +41,9 @@ export function ReviewRowComponent({ row, defaults, cache, target, onUpdate, onD
       <input
         type="checkbox"
         checked={row.included}
+        disabled={row.status === 'no_match'}
         onChange={e => onUpdate({ included: e.target.checked })}
-        className="mt-1 accent-orange-500 shrink-0"
+        className="mt-1 accent-orange-500 shrink-0 disabled:opacity-30 disabled:cursor-not-allowed"
       />
 
       <span className="w-36 shrink-0 truncate text-slate-300 text-xs" title={row.inputText}>
