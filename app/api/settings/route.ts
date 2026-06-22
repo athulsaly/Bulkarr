@@ -5,8 +5,12 @@ import type { ServiceConfig, Session } from '@/lib/types'
 export const runtime = 'nodejs'
 
 function maskKey(k: string): string {
-  if (!k) return ''
-  return k.length <= 8 ? '••••••••' : `${k.slice(0, 4)}${'•'.repeat(k.length - 4)}`
+  return k ? '••••••••' : ''
+}
+
+function isValidServiceUrl(url: unknown): url is string {
+  if (typeof url !== 'string') return false
+  try { return /^https?:\/\/.+/.test(new URL(url).href) } catch { return false }
 }
 
 function seedFromEnv(store: ReturnType<typeof readStore>) {
@@ -36,6 +40,17 @@ export async function POST(req: NextRequest) {
     session?: Session | null
     target?: 'movies' | 'series'
   }
+
+  for (const key of ['radarr', 'sonarr'] as const) {
+    if (body[key] !== undefined && body[key] !== null) {
+      if (!isValidServiceUrl(body[key]?.url))
+        return NextResponse.json({ error: `Invalid ${key} URL — must start with http:// or https://` }, { status: 400 })
+    }
+  }
+
+  if (body.target !== undefined && !['movies', 'series'].includes(body.target as string))
+    return NextResponse.json({ error: 'Invalid target' }, { status: 400 })
+
   updateStore(s => {
     if (body.radarr !== undefined) s.settings.radarr = body.radarr ?? null
     if (body.sonarr !== undefined) s.settings.sonarr = body.sonarr ?? null
