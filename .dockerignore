@@ -1,0 +1,9 @@
+node_modules
+.next
+.git
+data
+.env
+docs
+__tests__
+*.test.ts
+*.test.tsx

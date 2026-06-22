@@ -1,0 +1,23 @@
+services:
+  bulkarr:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "${PORT:-3000}:3000"
+    env_file: .env
+    volumes:
+      - bulkarr-data:/app/data
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    # To reach Radarr/Sonarr by container name, join their network:
+    # networks:
+    #   - media
+    # networks:
+    #   media:
+    #     external: true
+
+volumes:
+  bulkarr-data:
