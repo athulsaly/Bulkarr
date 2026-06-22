@@ -7,7 +7,7 @@ RUN corepack enable
 FROM base AS deps
 WORKDIR /app
 COPY package.json pnpm-lock.yaml .npmrc ./
-RUN pnpm install --frozen-lockfile --ignore-supply-chain-policy
+RUN pnpm install --frozen-lockfile --config.minimumReleaseAge=0
 
 # ── builder ─────────────────────────────────────────────────────────────────
 FROM base AS builder
