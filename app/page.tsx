@@ -42,6 +42,11 @@ export default function Page() {
     session.setRows(session.rows.filter(r => r.id !== id))
   }, [session])
 
+  const handleToggleAll = useCallback((included: boolean) => {
+    session.setRows(session.rows.map(r => ({ ...r, included })))
+  }, [session])
+
+  const tmdbConfigured = !!settingsHook.settings.tmdbApiKey
   const includedMatchedCount = session.rows.filter(r => r.included && (r.status === 'matched' || r.status === 'in_library')).length
 
   const needsSetup = !settingsHook.loading && !setupDone &&
@@ -93,8 +98,10 @@ export default function Page() {
           defaults={session.defaults}
           cache={settingsHook.cache}
           target={session.target}
+          cardView={tmdbConfigured}
           onUpdateRow={session.updateRow}
           onDeleteRow={handleDeleteRow}
+          onToggleAll={handleToggleAll}
         />
       </main>
 

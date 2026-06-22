@@ -1,24 +1,37 @@
 'use client'
-import { useRef } from 'react'
+import { useRef, useEffect } from 'react'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import type { ReviewRow, DefaultsConfig, Cache } from '@/lib/types'
 import { ReviewRowComponent } from './ReviewRow'
+import { ReviewCard } from './ReviewCard'
 
 interface Props {
   rows: ReviewRow[]
   defaults: DefaultsConfig
   cache: Cache
   target: 'movies' | 'series'
+  cardView?: boolean
   onUpdateRow: (id: string, patch: Partial<ReviewRow>) => void
   onDeleteRow: (id: string) => void
+  onToggleAll: (included: boolean) => void
 }
 
 const ROW_HEIGHT = 56
 const VIRTUAL_THRESHOLD = 100
 
-export function ReviewTable({ rows, defaults, cache, target, onUpdateRow, onDeleteRow }: Props) {
+export function ReviewTable({ rows, defaults, cache, target, cardView, onUpdateRow, onDeleteRow, onToggleAll }: Props) {
   const parentRef = useRef<HTMLDivElement>(null)
-  const shouldVirtualize = rows.length > VIRTUAL_THRESHOLD
+  const masterRef = useRef<HTMLInputElement>(null)
+  const shouldVirtualize = !cardView && rows.length > VIRTUAL_THRESHOLD
+
+  const allIncluded = rows.length > 0 && rows.every(r => r.included)
+  const someIncluded = rows.some(r => r.included)
+
+  useEffect(() => {
+    if (masterRef.current) {
+      masterRef.current.indeterminate = someIncluded && !allIncluded
+    }
+  }, [someIncluded, allIncluded])
 
   const virtualizer = useVirtualizer({
     count: rows.length,
@@ -29,9 +42,51 @@ export function ReviewTable({ rows, defaults, cache, target, onUpdateRow, onDele
 
   if (!rows.length) return null
 
+  const masterCheckbox = (
+    <input
+      ref={masterRef}
+      type="checkbox"
+      checked={allIncluded}
+      onChange={e => onToggleAll(e.target.checked)}
+      className="accent-orange-500 w-3.5 h-3.5 cursor-pointer"
+      title={allIncluded ? 'Deselect all' : 'Select all'}
+    />
+  )
+
+  // ── Card grid view ──────────────────────────────────────────────────────────
+  if (cardView) {
+    return (
+      <div className="border-t border-slate-700 px-4 py-3 space-y-3">
+        <div className="flex items-center gap-2 text-xs text-slate-500">
+          {masterCheckbox}
+          <span
+            className="cursor-pointer hover:text-slate-300 transition-colors"
+            onClick={() => onToggleAll(!allIncluded)}
+          >
+            {allIncluded ? 'Deselect all' : 'Select all'} ({rows.length})
+          </span>
+        </div>
+        <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))' }}>
+          {rows.map(row => (
+            <ReviewCard
+              key={row.id}
+              row={row}
+              defaults={defaults}
+              cache={cache}
+              target={target}
+              onUpdate={patch => onUpdateRow(row.id, patch)}
+              onDelete={() => onDeleteRow(row.id)}
+            />
+          ))}
+        </div>
+      </div>
+    )
+  }
+
+  // ── Table view ──────────────────────────────────────────────────────────────
   const header = (
     <div className="flex items-center gap-2 px-4 py-1.5 bg-slate-900 border-b border-slate-700 text-xs text-slate-500 uppercase tracking-wide sticky top-0 z-10">
-      <span className="w-4 shrink-0" />
+      <span className="shrink-0">{masterCheckbox}</span>
       <span className="w-36 shrink-0">Input</span>
       <span className="flex-1">Match</span>
       <span className="shrink-0">Status / Overrides</span>

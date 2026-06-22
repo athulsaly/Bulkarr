@@ -72,6 +72,7 @@ export interface ServiceConfig {
 export interface Settings {
   radarr: ServiceConfig | null
   sonarr: ServiceConfig | null
+  tmdbApiKey?: string
 }
 
 export interface ServiceCache {

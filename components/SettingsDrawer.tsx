@@ -98,6 +98,58 @@ function ServiceSection({
   )
 }
 
+function TmdbSection({ hook, onToast }: { hook: SettingsHook; onToast: Props['onToast'] }) {
+  const configured = !!hook.settings.tmdbApiKey
+  const [apiKey, setApiKey] = useState('')
+
+  const handleSave = async () => {
+    await hook.saveSettings({ tmdbApiKey: apiKey })
+    setApiKey('')
+    onToast('TMDB API key saved — poster card view enabled', 'success')
+  }
+
+  const handleClear = async () => {
+    await hook.saveSettings({ tmdbApiKey: '' })
+    onToast('TMDB API key removed', 'info')
+  }
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <h3 className="text-sm font-semibold text-orange-400 uppercase tracking-wide">TMDB</h3>
+        {configured && <span className="text-xs text-green-400">✓ Poster view on</span>}
+      </div>
+      <p className="text-xs text-slate-500">Add a TMDB API key to switch search results to a poster card layout.</p>
+      <div>
+        <label className="block text-xs text-slate-400 mb-1">
+          API Key {configured ? <span className="text-slate-500">(leave blank to keep current)</span> : null}
+        </label>
+        <input
+          type="password"
+          value={apiKey}
+          onChange={e => setApiKey(e.target.value)}
+          placeholder={configured ? '••••••••' : 'Enter TMDB API key'}
+          className="w-full rounded bg-slate-700 px-3 py-1.5 text-sm text-slate-100 border border-slate-600 focus:outline-none focus:border-orange-500"
+        />
+      </div>
+      <div className="flex gap-2">
+        <button
+          onClick={handleSave}
+          disabled={!apiKey}
+          className="flex-1 rounded bg-orange-600 hover:bg-orange-500 disabled:opacity-40 disabled:cursor-not-allowed px-3 py-1.5 text-sm font-medium transition-colors"
+        >
+          Save
+        </button>
+        {configured && (
+          <button onClick={handleClear} className="rounded bg-slate-700 hover:bg-slate-600 px-3 py-1.5 text-sm transition-colors">
+            Remove
+          </button>
+        )}
+      </div>
+    </div>
+  )
+}
+
 export function SettingsDrawer({ open, onClose, hook, onToast }: Props) {
   return (
     <>
@@ -111,6 +163,8 @@ export function SettingsDrawer({ open, onClose, hook, onToast }: Props) {
           <ServiceSection name="radarr" label="Radarr" hook={hook} onToast={onToast} />
           <hr className="border-slate-700" />
           <ServiceSection name="sonarr" label="Sonarr" hook={hook} onToast={onToast} />
+          <hr className="border-slate-700" />
+          <TmdbSection hook={hook} onToast={onToast} />
         </div>
       </div>
     </>

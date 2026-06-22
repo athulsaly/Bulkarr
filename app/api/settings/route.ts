@@ -27,6 +27,7 @@ export async function GET() {
     settings: {
       radarr: store.settings.radarr ? { url: store.settings.radarr.url, apiKey: maskKey(store.settings.radarr.apiKey) } : null,
       sonarr: store.settings.sonarr ? { url: store.settings.sonarr.url, apiKey: maskKey(store.settings.sonarr.apiKey) } : null,
+      tmdbApiKey: store.settings.tmdbApiKey ? maskKey(store.settings.tmdbApiKey) : '',
     },
     cache: store.cache,
     sessions: store.sessions,
@@ -37,6 +38,7 @@ export async function POST(req: NextRequest) {
   const body = await req.json() as {
     radarr?: ServiceConfig
     sonarr?: ServiceConfig
+    tmdbApiKey?: string
     session?: Session | null
     target?: 'movies' | 'series'
   }
@@ -54,6 +56,7 @@ export async function POST(req: NextRequest) {
   updateStore(s => {
     if (body.radarr !== undefined) s.settings.radarr = body.radarr ?? null
     if (body.sonarr !== undefined) s.settings.sonarr = body.sonarr ?? null
+    if (body.tmdbApiKey !== undefined) s.settings.tmdbApiKey = body.tmdbApiKey || undefined
     if (body.target && body.session !== undefined) s.sessions[body.target] = body.session
   })
   return NextResponse.json({ ok: true })
