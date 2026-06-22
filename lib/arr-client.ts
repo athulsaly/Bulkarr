@@ -62,13 +62,15 @@ function posterFrom(item: { remotePoster?: string; images?: Array<{ coverType: s
   return item.remotePoster ?? item.images?.find(i => i.coverType === 'poster')?.remoteUrl
 }
 
+type ArrLookupRaw = { title: string; year: number; tmdbId?: number; tvdbId?: number; overview?: string; remotePoster?: string; images?: Array<{ coverType: string; remoteUrl: string }> }
+
 export async function lookupMovies(url: string, key: string, term: string): Promise<ArrItem[]> {
-  const r = await arrFetch(url, key, `/api/v3/movie/lookup?term=${encodeURIComponent(term)}`) as any[]
+  const r = await arrFetch(url, key, `/api/v3/movie/lookup?term=${encodeURIComponent(term)}`) as ArrLookupRaw[]
   return r.map(m => ({ title: m.title, year: m.year, tmdbId: m.tmdbId, overview: m.overview, remotePoster: posterFrom(m) }))
 }
 
 export async function lookupSeries(url: string, key: string, term: string): Promise<ArrItem[]> {
-  const r = await arrFetch(url, key, `/api/v3/series/lookup?term=${encodeURIComponent(term)}`) as any[]
+  const r = await arrFetch(url, key, `/api/v3/series/lookup?term=${encodeURIComponent(term)}`) as ArrLookupRaw[]
   return r.map(s => ({ title: s.title, year: s.year, tvdbId: s.tvdbId, overview: s.overview, remotePoster: posterFrom(s) }))
 }
 

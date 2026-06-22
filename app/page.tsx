@@ -11,7 +11,7 @@ import { InputPanel } from '@/components/InputPanel'
 import { ReviewTable } from '@/components/ReviewTable'
 import { ToastStack } from '@/components/ToastStack'
 import { SetupScreen } from '@/components/SetupScreen'
-import type { ReviewRow, Target } from '@/lib/types'
+import type { Target } from '@/lib/types'
 
 export default function Page() {
   const [drawerOpen, setDrawerOpen] = useState(false)

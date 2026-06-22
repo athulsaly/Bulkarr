@@ -1,6 +1,5 @@
 'use client'
 import { useState, useEffect } from 'react'
-import type { Settings } from '@/lib/types'
 import type { useSettings } from '@/hooks/useSettings'
 
 type SettingsHook = ReturnType<typeof useSettings>
