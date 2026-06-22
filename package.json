@@ -17,10 +17,7 @@
     "uuid": "^14.0.1"
   },
   "pnpm": {
-    "shamefullyHoist": true,
-    "policies": {
-      "minimumReleaseAge": "0s"
-    }
+    "shamefullyHoist": true
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^6.9.1",
