@@ -92,6 +92,7 @@ export function ReviewCard({ row, defaults, cache, target, onUpdate, onDelete }:
             candidates={row.candidates}
             selectedIndex={row.selectedIndex}
             onChange={i => onUpdate({ selectedIndex: i })}
+            className="w-full text-xs rounded bg-slate-700 border border-slate-600 px-1.5 py-0.5 focus:outline-none focus:border-orange-500"
           />
         )}
 
