@@ -10,7 +10,7 @@ interface Props {
 }
 
 function lineCount(s: string) {
-  return s.split('\n').map(l => l.trim()).filter(Boolean).length
+  return s.split(/[\n,]+/).map(l => l.trim()).filter(Boolean).length
 }
 
 function parseTitles(raw: string): string {
@@ -57,7 +57,7 @@ export function InputPanel({ value, onChange, onLookup, running, progress }: Pro
   return (
     <div className="px-4 py-3 space-y-2">
       <div className="flex items-center justify-between mb-1">
-        <span className="text-xs text-slate-400">Paste titles or upload a file — one per line</span>
+        <span className="text-xs text-slate-400">Paste titles — one per line or comma-separated</span>
         {count > 0 && (
           <span className="text-xs bg-slate-700 text-slate-300 rounded px-2 py-0.5">{count} title{count !== 1 ? 's' : ''}</span>
         )}
@@ -65,7 +65,7 @@ export function InputPanel({ value, onChange, onLookup, running, progress }: Pro
       <textarea
         value={value}
         onChange={e => onChange(e.target.value)}
-        placeholder={'Inception\nThe Dark Knight\nInterstellar'}
+        placeholder={'Inception, The Dark Knight, Interstellar\n— or one per line'}
         className="w-full h-40 rounded bg-slate-800 border border-slate-700 px-3 py-2 text-sm font-mono text-slate-100 placeholder-slate-600 resize-none focus:outline-none focus:border-orange-500"
       />
       {progress && (

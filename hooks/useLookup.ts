@@ -12,7 +12,7 @@ interface LookupActions {
 }
 
 function parseLines(raw: string): string[] {
-  return raw.split('\n').map(l => l.trim()).filter(Boolean)
+  return raw.split(/[\n,]+/).map(l => l.trim()).filter(Boolean)
 }
 
 function librarySet(cache: Cache, target: 'movies' | 'series'): Set<number> {
