@@ -57,11 +57,11 @@ export function ReviewCard({ row, defaults, cache, target, onUpdate, onDelete }:
         )}
 
         {/* Checkbox top-left */}
-        <label className={`absolute top-2 left-2 ${row.status === 'no_match' ? 'cursor-not-allowed' : 'cursor-pointer'}`}>
+        <label className={`absolute top-2 left-2 ${row.status === 'no_match' || row.status === 'in_library' ? 'cursor-not-allowed' : 'cursor-pointer'}`}>
           <input
             type="checkbox"
             checked={row.included}
-            disabled={row.status === 'no_match'}
+            disabled={row.status === 'no_match' || row.status === 'in_library'}
             onChange={e => onUpdate({ included: e.target.checked })}
             className="w-4 h-4 accent-orange-500 disabled:opacity-30 disabled:cursor-not-allowed"
           />

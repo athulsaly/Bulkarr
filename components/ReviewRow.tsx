@@ -41,7 +41,7 @@ export function ReviewRowComponent({ row, defaults, cache, target, onUpdate, onD
       <input
         type="checkbox"
         checked={row.included}
-        disabled={row.status === 'no_match'}
+        disabled={row.status === 'no_match' || row.status === 'in_library'}
         onChange={e => onUpdate({ included: e.target.checked })}
         className="mt-1 accent-orange-500 shrink-0 disabled:opacity-30 disabled:cursor-not-allowed"
       />
