@@ -3,11 +3,8 @@ import { useState, useCallback } from 'react'
 import { v4 as uuidv4 } from 'uuid'
 import type { ReviewRow, ArrItem, Cache } from '@/lib/types'
 
-interface Progress { done: number; total: number }
-
 interface LookupActions {
   lookup: (rawInput: string, target: 'movies' | 'series', cache: Cache) => Promise<ReviewRow[]>
-  progress: Progress | null
   running: boolean
 }
 
@@ -22,7 +19,6 @@ function librarySet(cache: Cache, target: 'movies' | 'series'): Set<number> {
 }
 
 export function useLookup(): LookupActions {
-  const [progress, setProgress] = useState<Progress | null>(null)
   const [running, setRunning] = useState(false)
 
   const lookup = useCallback(async (rawInput: string, target: 'movies' | 'series', cache: Cache): Promise<ReviewRow[]> => {
@@ -30,7 +26,6 @@ export function useLookup(): LookupActions {
     if (!terms.length) return []
 
     setRunning(true)
-    setProgress({ done: 0, total: terms.length })
 
     try {
       const res = await fetch('/api/lookup', {
@@ -39,7 +34,6 @@ export function useLookup(): LookupActions {
         body: JSON.stringify({ target, terms }),
       })
       const data = await res.json() as { results: Array<{ candidates: ArrItem[]; error?: string }> }
-      setProgress({ done: terms.length, total: terms.length })
 
       const libSet = librarySet(cache, target)
 
@@ -65,9 +59,8 @@ export function useLookup(): LookupActions {
       })
     } finally {
       setRunning(false)
-      setProgress(null)
     }
   }, [])
 
-  return { lookup, progress, running }
+  return { lookup, running }
 }

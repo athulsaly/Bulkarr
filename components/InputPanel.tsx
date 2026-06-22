@@ -7,7 +7,6 @@ interface Props {
   onChange: (v: string) => void
   onLookup: () => void
   running: boolean
-  progress: { done: number; total: number } | null
 }
 
 function lineCount(s: string) {
@@ -39,7 +38,7 @@ function parseTitles(raw: string): string {
   return parts.join('\n')
 }
 
-export function InputPanel({ value, onChange, onLookup, running, progress }: Props) {
+export function InputPanel({ value, onChange, onLookup, running }: Props) {
   const count = lineCount(value)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -69,17 +68,11 @@ export function InputPanel({ value, onChange, onLookup, running, progress }: Pro
         placeholder={'Inception, The Dark Knight, Interstellar\n— or one per line'}
         className="w-full h-40 rounded bg-slate-800 border border-slate-700 px-3 py-2 text-sm font-mono text-slate-100 placeholder-slate-600 resize-none focus:outline-none focus:border-orange-500"
       />
-      {progress && (
+      {running && (
         <div className="space-y-1">
-          <div className="flex justify-between text-xs text-slate-500">
-            <span>Looking up…</span>
-            <span>{progress.done} / {progress.total}</span>
-          </div>
+          <p className="text-xs text-slate-500">Looking up…</p>
           <div className="h-1.5 w-full bg-slate-700 rounded overflow-hidden">
-            <div
-              className="h-full bg-orange-500 transition-all duration-200"
-              style={{ width: `${(progress.done / progress.total) * 100}%` }}
-            />
+            <div className="h-full bg-orange-500 animate-shimmer" style={{ width: '40%' }} />
           </div>
         </div>
       )}

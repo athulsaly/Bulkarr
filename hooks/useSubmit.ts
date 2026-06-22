@@ -1,5 +1,5 @@
 'use client'
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useRef } from 'react'
 import { throttledBatch } from '@/lib/throttle'
 import type { ReviewRow, DefaultsConfig, SubmitResult } from '@/lib/types'
 
@@ -22,6 +22,7 @@ export function useSubmit(): SubmitActions {
   const [submitting, setSubmitting] = useState(false)
   const [summary, setSummary] = useState<Summary | null>(null)
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null)
+  const clearProgressTimer = useRef<ReturnType<typeof setTimeout>>()
 
   const submit = useCallback(async (
     rows: ReviewRow[],
@@ -64,11 +65,16 @@ export function useSubmit(): SubmitActions {
       return s
     } finally {
       setSubmitting(false)
-      setProgress(null)
+      clearTimeout(clearProgressTimer.current)
+      clearProgressTimer.current = setTimeout(() => setProgress(null), 700)
     }
   }, [])
 
-  const clearSummary = useCallback(() => setSummary(null), [])
+  const clearSummary = useCallback(() => {
+    setSummary(null)
+    clearTimeout(clearProgressTimer.current)
+    setProgress(null)
+  }, [])
 
   return { submit, submitting, summary, progress, clearSummary }
 }

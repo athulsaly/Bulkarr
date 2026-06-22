@@ -30,7 +30,7 @@ export default function Page() {
   const seriesSession = useSession(null, 'series')
   const session = activeTarget === 'movies' ? moviesSession : seriesSession
 
-  const { lookup, progress, running: lookupRunning } = useLookup()
+  const { lookup, running: lookupRunning } = useLookup()
   const { submit, submitting, summary, progress: submitProgress, clearSummary } = useSubmit()
 
   const handleLookup = useCallback(async () => {
@@ -61,8 +61,8 @@ export default function Page() {
   ]
 
   const handleRetry = useCallback((text: string, target: Target) => {
-    if (target === 'movies') moviesSession.setRawInput(moviesSession.rawInput ? moviesSession.rawInput + '\n' + text : text)
-    else seriesSession.setRawInput(seriesSession.rawInput ? seriesSession.rawInput + '\n' + text : text)
+    if (target === 'movies') moviesSession.setRawInput(text)
+    else seriesSession.setRawInput(text)
     setActiveTarget(target)
     setNoMatchOpen(false)
   }, [moviesSession, seriesSession])
@@ -127,7 +127,6 @@ export default function Page() {
           onChange={session.setRawInput}
           onLookup={handleLookup}
           running={lookupRunning}
-          progress={progress}
         />
 
         <ReviewTable
