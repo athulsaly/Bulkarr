@@ -27,13 +27,38 @@ export function useSettings(): SettingsState & SettingsActions {
   const [refreshing, setRefreshing] = useState<'radarr' | 'sonarr' | null>(null)
 
   useEffect(() => {
+    let cancelled = false
     fetch('/api/settings')
       .then(r => r.json())
-      .then(data => {
-        setSettings(data.settings ?? DEFAULT_SETTINGS)
-        setCache(data.cache ?? DEFAULT_CACHE)
+      .then(async data => {
+        if (cancelled) return
+        const settings: Settings = data.settings ?? DEFAULT_SETTINGS
+        const cache: Cache = data.cache ?? DEFAULT_CACHE
+        setSettings(settings)
+        setCache(cache)
+
+        // Auto-refresh cache for any service that has credentials but no cached profiles
+        const toRefresh: Array<'radarr' | 'sonarr'> = []
+        if (settings.radarr && !cache.radarr?.profiles?.length) toRefresh.push('radarr')
+        if (settings.sonarr && !cache.sonarr?.profiles?.length) toRefresh.push('sonarr')
+
+        for (const service of toRefresh) {
+          try {
+            const res = await fetch('/api/cache', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ service }),
+            })
+            const result = await res.json() as { ok?: boolean }
+            if (result.ok && !cancelled) {
+              const updated = await fetch('/api/settings').then(r => r.json())
+              if (!cancelled) setCache(updated.cache ?? DEFAULT_CACHE)
+            }
+          } catch {}
+        }
       })
-      .finally(() => setLoading(false))
+      .finally(() => { if (!cancelled) setLoading(false) })
+    return () => { cancelled = true }
   }, [])
 
   const saveSettings = useCallback(async (patch: Partial<Settings>) => {
