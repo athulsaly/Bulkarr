@@ -58,7 +58,7 @@ export function useLookup(): LookupActions {
           candidates,
           selectedIndex: 0,
           overrides: {},
-          included: !inLib,
+          included: status !== 'no_match' && !inLib,
           status,
           errorMessage: error,
         }
