@@ -10,12 +10,14 @@ import { DefaultsBar } from '@/components/DefaultsBar'
 import { InputPanel } from '@/components/InputPanel'
 import { ReviewTable } from '@/components/ReviewTable'
 import { ToastStack } from '@/components/ToastStack'
+import { SetupScreen } from '@/components/SetupScreen'
 import type { ReviewRow } from '@/lib/types'
 
 export default function Page() {
   const [drawerOpen, setDrawerOpen] = useState(false)
   const { toasts, addToast, dismiss } = useToast()
   const settingsHook = useSettings()
+  const [setupDone, setSetupDone] = useState(false)
 
   const session = useSession(null, 'movies')
 
@@ -41,6 +43,17 @@ export default function Page() {
   }, [session])
 
   const includedMatchedCount = session.rows.filter(r => r.included && (r.status === 'matched' || r.status === 'in_library')).length
+
+  const needsSetup = !settingsHook.loading && !setupDone &&
+    !settingsHook.settings.radarr && !settingsHook.settings.sonarr
+
+  if (settingsHook.loading) {
+    return <div className="flex min-h-screen items-center justify-center bg-slate-900 text-slate-500 text-sm">Loading…</div>
+  }
+
+  if (needsSetup) {
+    return <SetupScreen hook={settingsHook} onComplete={() => setSetupDone(true)} />
+  }
 
   return (
     <div className="flex flex-col min-h-screen bg-slate-900 text-slate-100">
