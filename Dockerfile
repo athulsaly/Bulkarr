@@ -6,7 +6,7 @@ RUN corepack enable
 # ── deps ────────────────────────────────────────────────────────────────────
 FROM base AS deps
 WORKDIR /app
-COPY package.json pnpm-lock.yaml .npmrc ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
 RUN pnpm install --frozen-lockfile --config.minimumReleaseAge=0
 
 # ── builder ─────────────────────────────────────────────────────────────────
@@ -30,7 +30,7 @@ RUN adduser --system --uid 1001 nextjs
 
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
-COPY --from=builder /app/public ./public
+# COPY --from=builder /app/public ./public
 
 RUN mkdir -p /app/data && chown nextjs:nodejs /app/data
 

@@ -17,7 +17,7 @@
     "uuid": "^14.0.1"
   },
   "pnpm": {
-    "shamefullyHoist": true
+    "shamefullyHoist": true  
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^6.9.1",
