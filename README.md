@@ -1,36 +1,53 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Bulkarr
 
-## Getting Started
+Bulk-add movies and TV series to Radarr and Sonarr. Paste a list of titles, review the matches, and add them all at once.
 
-First, run the development server:
+## Quick Start (Docker)
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+cp .env.example .env
+# edit .env with your Radarr/Sonarr URLs and API keys
+docker compose up -d
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open http://localhost:3000.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Features
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- Paste any number of titles (one per line)
+- Batch lookup via Radarr/Sonarr search APIs
+- Review table with match picker for ambiguous results
+- Per-row quality profile and root folder overrides
+- In-library detection (already-added titles highlighted)
+- Session persists across page refresh and container restart
+- All API keys stay server-side — never sent to the browser
 
-## Learn More
+## Configuration
 
-To learn more about Next.js, take a look at the following resources:
+Settings can be provided via environment variables (seeded on first boot) or through the in-app Settings drawer.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+| Variable | Purpose |
+|---|---|
+| `RADARR_URL` | Radarr base URL, e.g. `http://radarr:7878` |
+| `RADARR_API_KEY` | Radarr API key |
+| `SONARR_URL` | Sonarr base URL, e.g. `http://sonarr:8989` |
+| `SONARR_API_KEY` | Sonarr API key |
+| `DATA_DIR` | Where `store.json` lives (default: `./data`) |
+| `PORT` | Listen port (default: `3000`) |
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Joining an Existing Docker Network
 
-## Deploy on Vercel
+If Radarr and Sonarr are in a Docker network called `media`, uncomment the `networks` block in `docker-compose.yml` and use container names in the URL fields.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Development
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```bash
+pnpm install
+pnpm dev        # http://localhost:3000
+pnpm test       # Jest test suite
+pnpm tsc --noEmit  # type check
+```
+
+## Security Note
+
+This is a LAN-internal tool with no authentication. Do not expose it to the public internet.
