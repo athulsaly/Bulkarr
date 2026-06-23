@@ -8,7 +8,7 @@ Bulk-add movies and TV series to Radarr and Sonarr. Paste or upload a list of ti
 docker compose up -d
 ```
 
-Open http://localhost:3000. On first run you'll be taken through a setup screen to enter your Radarr/Sonarr URLs and API keys — no `.env` editing needed.
+Open http://localhost:1947. On first run you'll be taken through a setup screen to enter your Radarr/Sonarr URLs and API keys — no `.env` editing needed.
 
 ## Features
 
@@ -27,10 +27,10 @@ Open http://localhost:3000. On first run you'll be taken through a setup screen 
 
 Service URLs and API keys are entered through the in-app setup screen and Settings drawer. The only environment variables are:
 
-| Variable | Default | Purpose |
-|---|---|---|
+| Variable   | Default  | Purpose                                   |
+| ---------- | -------- | ----------------------------------------- |
 | `DATA_DIR` | `./data` | Directory where `store.json` is persisted |
-| `PORT` | `3000` | Listen port |
+| `PORT`     | `1947`   | Listen port                               |
 
 ## Docker
 
@@ -55,7 +55,7 @@ If Radarr and Sonarr run in a Docker network (e.g. `media`), uncomment the `netw
 
 ```bash
 pnpm install
-pnpm dev          # http://localhost:3000
+pnpm dev          # http://localhost:1947
 pnpm build        # production build
 pnpm lint         # ESLint
 pnpm tsc --noEmit # type check

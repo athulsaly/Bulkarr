@@ -7,7 +7,7 @@ RUN corepack enable
 FROM base AS deps
 WORKDIR /app
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
-RUN pnpm install --frozen-lockfile --config.minimumReleaseAge=0
+RUN pnpm install --frozen-lockfile
 
 # ── builder ─────────────────────────────────────────────────────────────────
 FROM base AS builder
@@ -22,7 +22,7 @@ FROM node:22-alpine AS runner
 WORKDIR /app
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
-ENV PORT=3000
+ENV PORT=1947
 ENV DATA_DIR=/app/data
 
 RUN addgroup --system --gid 1001 nodejs
@@ -36,7 +36,7 @@ RUN mkdir -p /app/data && chown nextjs:nodejs /app/data
 
 USER nextjs
 
-EXPOSE 3000
+EXPOSE 1947
 HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
   CMD wget -qO- http://localhost:$PORT/api/health || exit 1
 
