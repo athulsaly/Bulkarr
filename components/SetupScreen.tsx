@@ -75,6 +75,7 @@ export function SetupScreen({ hook, onComplete }: Props) {
   const [radarrKey, setRadarrKey] = useState('')
   const [sonarrUrl, setSonarrUrl] = useState('')
   const [sonarrKey, setSonarrKey] = useState('')
+  const [tmdbKey, setTmdbKey] = useState('')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
@@ -91,6 +92,7 @@ export function SetupScreen({ hook, onComplete }: Props) {
       await hook.saveSettings({
         ...(hasRadarr ? { radarr: { url: radarrUrl, apiKey: radarrKey } } : {}),
         ...(hasSonarr ? { sonarr: { url: sonarrUrl, apiKey: sonarrKey } } : {}),
+        ...(tmdbKey ? { tmdbApiKey: tmdbKey } : {}),
       })
       await Promise.all([
         hasRadarr ? hook.refreshCache('radarr') : Promise.resolve(),
@@ -105,8 +107,12 @@ export function SetupScreen({ hook, onComplete }: Props) {
   }
 
   const makeTestFn = (service: 'radarr' | 'sonarr', url: string, apiKey: string) => async () => {
-    await hook.saveSettings({ [service]: { url, apiKey } })
-    return hook.testConnection(service)
+    const res = await fetch('/api/settings/test', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ service, url, apiKey }),
+    })
+    return await res.json() as { ok: boolean; version?: string; error?: string }
   }
 
   return (
@@ -139,6 +145,21 @@ export function SetupScreen({ hook, onComplete }: Props) {
             onTest={makeTestFn('sonarr', sonarrUrl, sonarrKey)}
             testing={hook.testing === 'sonarr'}
           />
+          <hr className="border-slate-700" />
+          <div className="space-y-3">
+            <h3 className="text-sm font-semibold text-orange-400 uppercase tracking-wide">TMDB <span className="text-slate-500 normal-case font-normal">(optional)</span></h3>
+            <p className="text-xs text-slate-500">Enables poster card layout for search results.</p>
+            <div>
+              <label className="block text-xs text-slate-400 mb-1">API Key</label>
+              <input
+                type="password"
+                value={tmdbKey}
+                onChange={e => setTmdbKey(e.target.value)}
+                placeholder="Paste your TMDB API key"
+                className="w-full rounded bg-slate-700 border border-slate-600 px-3 py-2 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-orange-500"
+              />
+            </div>
+          </div>
 
           {error && <p className="text-red-400 text-sm">{error}</p>}
 

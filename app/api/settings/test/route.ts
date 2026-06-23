@@ -5,10 +5,14 @@ import { getSystemStatus, ArrApiError } from '@/lib/arr-client'
 export const runtime = 'nodejs'
 
 export async function POST(req: NextRequest) {
-  const { service } = await req.json() as { service: string }
+  const { service, url: inlineUrl, apiKey: inlineKey } = await req.json() as {
+    service: string; url?: string; apiKey?: string
+  }
   if (service !== 'radarr' && service !== 'sonarr')
     return NextResponse.json({ ok: false, error: 'Invalid service' }, { status: 400 })
-  const config = readStore().settings[service]
+  const config = (inlineUrl && inlineKey)
+    ? { url: inlineUrl, apiKey: inlineKey }
+    : readStore().settings[service]
   if (!config) return NextResponse.json({ ok: false, error: 'Not configured' }, { status: 400 })
   try {
     const { version } = await getSystemStatus(config.url, config.apiKey)

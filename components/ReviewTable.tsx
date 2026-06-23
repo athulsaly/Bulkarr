@@ -24,8 +24,9 @@ export function ReviewTable({ rows, defaults, cache, target, cardView, onUpdateR
   const masterRef = useRef<HTMLInputElement>(null)
   const shouldVirtualize = !cardView && rows.length > VIRTUAL_THRESHOLD
 
-  const allIncluded = rows.length > 0 && rows.every(r => r.included)
-  const someIncluded = rows.some(r => r.included)
+  const selectableRows = rows.filter(r => r.status !== 'no_match' && r.status !== 'in_library')
+  const allIncluded = selectableRows.length > 0 && selectableRows.every(r => r.included)
+  const someIncluded = selectableRows.some(r => r.included)
 
   useEffect(() => {
     if (masterRef.current) {

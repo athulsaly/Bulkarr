@@ -22,7 +22,7 @@ export function useLookup(): LookupActions {
   const [running, setRunning] = useState(false)
 
   const lookup = useCallback(async (rawInput: string, target: 'movies' | 'series', cache: Cache): Promise<ReviewRow[]> => {
-    const terms = parseLines(rawInput)
+    const terms = Array.from(new Set(parseLines(rawInput)))
     if (!terms.length) return []
 
     setRunning(true)
