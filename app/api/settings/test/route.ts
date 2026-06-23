@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { readStore } from '@/lib/store'
 import { getSystemStatus, ArrApiError } from '@/lib/arr-client'
+import { isValidServiceUrl } from '@/lib/validate'
 
 export const runtime = 'nodejs'
 
@@ -10,6 +11,8 @@ export async function POST(req: NextRequest) {
   }
   if (service !== 'radarr' && service !== 'sonarr')
     return NextResponse.json({ ok: false, error: 'Invalid service' }, { status: 400 })
+  if (inlineUrl !== undefined && !isValidServiceUrl(inlineUrl))
+    return NextResponse.json({ ok: false, error: 'Invalid URL — must start with http:// or https://' }, { status: 400 })
   const config = (inlineUrl && inlineKey)
     ? { url: inlineUrl, apiKey: inlineKey }
     : readStore().settings[service]

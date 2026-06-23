@@ -1,16 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { readStore, updateStore } from '@/lib/store'
+import { isValidServiceUrl } from '@/lib/validate'
 import type { ServiceConfig, Session } from '@/lib/types'
 
 export const runtime = 'nodejs'
 
 function maskKey(k: string): string {
   return k ? '••••••••' : ''
-}
-
-function isValidServiceUrl(url: unknown): url is string {
-  if (typeof url !== 'string') return false
-  try { return /^https?:\/\/.+/.test(new URL(url).href) } catch { return false }
 }
 
 function seedFromEnv(store: ReturnType<typeof readStore>) {
