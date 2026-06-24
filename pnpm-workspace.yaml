@@ -2,3 +2,8 @@ packages:
   - '.'
 allowBuilds:
   unrs-resolver: true
+overrides:
+  picomatch: '>=4.0.4'
+  'brace-expansion@2': '>=2.0.3'
+  ip-address: '>=10.1.1'
+  tar: '>=7.5.16'

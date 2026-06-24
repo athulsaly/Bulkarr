@@ -16,15 +16,6 @@
     "react-dom": "^18",
     "uuid": "^14.0.1"
   },
-  "pnpm": {
-    "shamefullyHoist": true,
-    "overrides": {
-      "picomatch": "^4.0.4",
-      "brace-expansion@2": "^2.0.3",
-      "ip-address": "^10.1.1",
-      "tar": "^7.5.16"
-    }
-  },
   "devDependencies": {
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
