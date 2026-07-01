@@ -114,3 +114,24 @@ export interface SubmitResult {
   errorCode?: ArrErrorCode
   errorMessage?: string
 }
+
+export type ManageAction = 'remove' | 'unmonitor'
+
+export type ManageRowStatus = 'pending' | 'matched' | 'no_match' | 'done' | 'failed'
+
+export interface ManageRow {
+  id: string
+  inputText: string
+  libraryMatches: LibraryItem[]
+  selectedIndex: number
+  action: ManageAction
+  status: ManageRowStatus
+  errorMessage?: string
+}
+
+export interface ManageResult {
+  rowId: string
+  status: 'done' | 'failed'
+  errorCode?: ArrErrorCode
+  errorMessage?: string
+}
