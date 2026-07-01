@@ -1,5 +1,5 @@
 'use client'
-import { useState, useCallback, useRef } from 'react'
+import { useState, useCallback, useRef, useEffect } from 'react'
 import { v4 as uuidv4 } from 'uuid'
 import type { ManageRow, ManageResult, LibraryItem, Cache } from '@/lib/types'
 
@@ -40,6 +40,8 @@ export function useManage(): ManageActions {
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null)
   const clearProgressTimer = useRef<ReturnType<typeof setTimeout>>()
 
+  useEffect(() => () => { clearTimeout(clearProgressTimer.current) }, [])
+
   const match = useCallback((rawInput: string, target: 'movies' | 'series', cache: Cache): ManageRow[] => {
     const terms = Array.from(new Set(parseLines(rawInput)))
     const library = (target === 'movies' ? cache.radarr?.library : cache.sonarr?.library) ?? []
@@ -75,6 +77,7 @@ export function useManage(): ManageActions {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ target, rows: eligible, deleteFiles }),
       })
+      if (!res.ok) throw new Error(`manage API error ${res.status}`)
       const data = await res.json() as { results: ManageResult[] }
 
       for (const result of data.results) {
