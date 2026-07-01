@@ -88,3 +88,27 @@ export async function addSeries(url: string, key: string, body: {
 }) {
   return arrFetch(url, key, '/api/v3/series', { method: 'POST', body: JSON.stringify(body) }) as Promise<{ id: number }>
 }
+
+export async function deleteMovie(url: string, key: string, id: number, deleteFiles: boolean): Promise<void> {
+  await arrFetch(url, key, `/api/v3/movie/${id}?deleteFiles=${deleteFiles}`, { method: 'DELETE' })
+}
+
+export async function deleteSeries(url: string, key: string, id: number, deleteFiles: boolean): Promise<void> {
+  await arrFetch(url, key, `/api/v3/series/${id}?deleteFiles=${deleteFiles}`, { method: 'DELETE' })
+}
+
+export async function unmonitorMovie(url: string, key: string, id: number): Promise<void> {
+  const movie = await arrFetch(url, key, `/api/v3/movie/${id}`) as Record<string, unknown>
+  await arrFetch(url, key, `/api/v3/movie/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify({ ...movie, monitored: false }),
+  })
+}
+
+export async function unmonitorSeries(url: string, key: string, id: number): Promise<void> {
+  const series = await arrFetch(url, key, `/api/v3/series/${id}`) as Record<string, unknown>
+  await arrFetch(url, key, `/api/v3/series/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify({ ...series, monitored: false }),
+  })
+}
