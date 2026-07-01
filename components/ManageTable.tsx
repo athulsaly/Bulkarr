@@ -1,5 +1,5 @@
 'use client'
-import { useRef, useEffect } from 'react'
+import { useRef } from 'react'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import type { ManageRow } from '@/lib/types'
 import { ManageRowComponent } from './ManageRow'
@@ -16,18 +16,7 @@ const VIRTUAL_THRESHOLD = 100
 
 export function ManageTable({ rows, onUpdateRow, onDeleteRow, onToggleAll }: Props) {
   const parentRef = useRef<HTMLDivElement>(null)
-  const masterRef = useRef<HTMLInputElement>(null)
   const shouldVirtualize = rows.length > VIRTUAL_THRESHOLD
-
-  const matchedRows = rows.filter(r => r.status === 'matched')
-  const allMatched = matchedRows.length > 0
-  const someMatched = matchedRows.length > 0
-
-  useEffect(() => {
-    if (masterRef.current) {
-      masterRef.current.indeterminate = false
-    }
-  }, [someMatched, allMatched])
 
   const virtualizer = useVirtualizer({
     count: rows.length,
