@@ -1,5 +1,5 @@
 'use client'
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { useSettings } from '@/hooks/useSettings'
 import { useSession } from '@/hooks/useSession'
 import { useLookup } from '@/hooks/useLookup'
@@ -40,6 +40,17 @@ export default function Page() {
   const [manageRows, setManageRows] = useState<ManageRow[]>([])
   const [deleteFiles, setDeleteFiles] = useState(false)
   const [manageInput, setManageInput] = useState('')
+
+  useEffect(() => {
+    if (activeMode === 'manage') {
+      setManageRows([])
+      manageHook.clearSummary()
+    }
+  }, [activeTarget])
+
+  useEffect(() => {
+    setDeleteFiles(false)
+  }, [activeTarget, activeMode])
 
   // ── Add mode handlers ────────────────────────────────────────────────────
   const handleLookup = useCallback(async () => {

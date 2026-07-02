@@ -33,12 +33,14 @@ export async function POST(req: NextRequest) {
           } else {
             await deleteSeries(config.url, config.apiKey, match.id, deleteFiles)
           }
-        } else {
+        } else if (row.action === 'unmonitor') {
           if (target === 'movies') {
             await unmonitorMovie(config.url, config.apiKey, match.id)
           } else {
             await unmonitorSeries(config.url, config.apiKey, match.id)
           }
+        } else {
+          return { rowId: row.id, status: 'failed', errorMessage: 'Invalid action' }
         }
         return { rowId: row.id, status: 'done' }
       } catch (e) {
