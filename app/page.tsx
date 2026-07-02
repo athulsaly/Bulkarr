@@ -4,17 +4,19 @@ import { useSettings } from '@/hooks/useSettings'
 import { useSession } from '@/hooks/useSession'
 import { useLookup } from '@/hooks/useLookup'
 import { useSubmit } from '@/hooks/useSubmit'
+import { useManage } from '@/hooks/useManage'
 import { useToast } from '@/hooks/useToast'
 import { Spinner } from '@/components/Spinner'
 import { SettingsDrawer } from '@/components/SettingsDrawer'
 import { DefaultsBar } from '@/components/DefaultsBar'
 import { InputPanel } from '@/components/InputPanel'
 import { ReviewTable } from '@/components/ReviewTable'
+import { ManageTable } from '@/components/ManageTable'
 import { ToastStack } from '@/components/ToastStack'
 import { SetupScreen } from '@/components/SetupScreen'
 import { HistoryDrawer } from '@/components/HistoryDrawer'
 import { NoMatchDrawer } from '@/components/NoMatchDrawer'
-import type { Target } from '@/lib/types'
+import type { Target, ManageRow } from '@/lib/types'
 
 export default function Page() {
   const [drawerOpen, setDrawerOpen] = useState(false)
@@ -24,8 +26,9 @@ export default function Page() {
   const settingsHook = useSettings()
   const [setupDone, setSetupDone] = useState(false)
 
-  // Independent session per target — switching tabs preserves both states
   const [activeTarget, setActiveTarget] = useState<Target>('movies')
+  const [activeMode, setActiveMode] = useState<'add' | 'manage'>('add')
+
   const moviesSession = useSession(null, 'movies')
   const seriesSession = useSession(null, 'series')
   const session = activeTarget === 'movies' ? moviesSession : seriesSession
@@ -33,6 +36,12 @@ export default function Page() {
   const { lookup, running: lookupRunning } = useLookup()
   const { submit, submitting, summary, progress: submitProgress, clearSummary } = useSubmit()
 
+  const manageHook = useManage()
+  const [manageRows, setManageRows] = useState<ManageRow[]>([])
+  const [deleteFiles, setDeleteFiles] = useState(false)
+  const [manageInput, setManageInput] = useState('')
+
+  // ── Add mode handlers ────────────────────────────────────────────────────
   const handleLookup = useCallback(async () => {
     clearSummary()
     const rows = await lookup(session.rawInput, activeTarget, settingsHook.cache)
@@ -55,6 +64,33 @@ export default function Page() {
     session.setRows(session.rows.map(r => (r.status === 'no_match' || r.status === 'in_library') ? r : { ...r, included }))
   }, [session])
 
+  // ── Manage mode handlers ─────────────────────────────────────────────────
+  const handleManageLookup = useCallback(() => {
+    manageHook.clearSummary()
+    const rows = manageHook.match(manageInput, activeTarget, settingsHook.cache)
+    setManageRows(rows)
+    if (rows.length > 0 && rows.every(r => r.status === 'no_match')) {
+      addToast('No library matches found', 'error')
+    }
+  }, [manageInput, activeTarget, settingsHook.cache, manageHook, addToast])
+
+  const handleManageSubmit = useCallback(async () => {
+    const updateRow = (id: string, patch: Partial<ManageRow>) => {
+      setManageRows(prev => prev.map(r => r.id === id ? { ...r, ...patch } : r))
+    }
+    const s = await manageHook.submit(manageRows, activeTarget, deleteFiles, updateRow)
+    addToast(`Done — ${s.done} applied · ${s.failed} failed`, s.failed > 0 ? 'error' : 'success')
+  }, [manageRows, activeTarget, deleteFiles, manageHook, addToast])
+
+  const handleManageDeleteRow = useCallback((id: string) => {
+    setManageRows(prev => prev.filter(r => r.id !== id))
+  }, [])
+
+  const handleManageUpdateRow = useCallback((id: string, patch: Partial<ManageRow>) => {
+    setManageRows(prev => prev.map(r => r.id === id ? { ...r, ...patch } : r))
+  }, [])
+
+  // ── Shared ───────────────────────────────────────────────────────────────
   const noMatchEntries = [
     ...moviesSession.rows.filter(r => r.status === 'no_match').map(row => ({ row, target: 'movies' as Target })),
     ...seriesSession.rows.filter(r => r.status === 'no_match').map(row => ({ row, target: 'series' as Target })),
@@ -75,6 +111,8 @@ export default function Page() {
 
   const tmdbConfigured = !!settingsHook.settings.tmdbApiKey
   const includedMatchedCount = session.rows.filter(r => r.included && (r.status === 'matched' || r.status === 'in_library')).length
+  const manageEligibleCount = manageRows.filter(r => r.status === 'matched').length
+  const hasRemoveRows = manageRows.some(r => r.status === 'matched' && r.action === 'remove')
 
   const needsSetup = !settingsHook.loading && !setupDone &&
     !settingsHook.settings.radarr && !settingsHook.settings.sonarr
@@ -93,6 +131,11 @@ export default function Page() {
   if (needsSetup) {
     return <SetupScreen hook={settingsHook} onComplete={() => setSetupDone(true)} />
   }
+
+  const isManage = activeMode === 'manage'
+  const currentInput = isManage ? manageInput : session.rawInput
+  const handleInputChange = isManage ? setManageInput : session.setRawInput
+  const handleLookupAction = isManage ? handleManageLookup : handleLookup
 
   return (
     <div className="flex flex-col min-h-screen bg-slate-900 text-slate-100">
@@ -122,6 +165,8 @@ export default function Page() {
       <DefaultsBar
         target={activeTarget}
         onTargetChange={setActiveTarget}
+        activeMode={activeMode}
+        onModeChange={mode => { setActiveMode(mode); manageHook.clearSummary(); clearSummary() }}
         defaults={session.defaults}
         onDefaultsChange={session.setDefaults}
         cache={settingsHook.cache}
@@ -129,57 +174,112 @@ export default function Page() {
 
       <main className="flex-1 overflow-auto">
         <InputPanel
-          value={session.rawInput}
-          onChange={session.setRawInput}
-          onLookup={handleLookup}
+          value={currentInput}
+          onChange={handleInputChange}
+          onLookup={handleLookupAction}
           running={lookupRunning}
         />
 
-        <ReviewTable
-          rows={session.rows}
-          defaults={session.defaults}
-          cache={settingsHook.cache}
-          target={activeTarget}
-          cardView={tmdbConfigured}
-          onUpdateRow={session.updateRow}
-          onDeleteRow={handleDeleteRow}
-          onToggleAll={handleToggleAll}
-        />
+        {isManage ? (
+          <ManageTable
+            rows={manageRows}
+            onUpdateRow={handleManageUpdateRow}
+            onDeleteRow={handleManageDeleteRow}
+            onToggleAll={() => {}}
+          />
+        ) : (
+          <ReviewTable
+            rows={session.rows}
+            defaults={session.defaults}
+            cache={settingsHook.cache}
+            target={activeTarget}
+            cardView={tmdbConfigured}
+            onUpdateRow={session.updateRow}
+            onDeleteRow={handleDeleteRow}
+            onToggleAll={handleToggleAll}
+          />
+        )}
       </main>
 
       {/* Submit bar */}
-      {session.rows.length > 0 && (
-        <footer className="shrink-0 bg-slate-800 border-t border-slate-700">
-          {submitProgress && (
-            <div className="px-4 pt-2 space-y-1">
-              <div className="flex justify-between text-xs text-slate-500">
-                <span>Adding…</span>
-                <span>{submitProgress.done} / {submitProgress.total}</span>
+      {isManage ? (
+        manageRows.length > 0 && (
+          <footer className="shrink-0 bg-slate-800 border-t border-slate-700">
+            {manageHook.progress && (
+              <div className="px-4 pt-2 space-y-1">
+                <div className="flex justify-between text-xs text-slate-500">
+                  <span>Applying…</span>
+                  <span>{manageHook.progress.done} / {manageHook.progress.total}</span>
+                </div>
+                <div className="h-1 w-full bg-slate-700 rounded overflow-hidden">
+                  <div
+                    className="h-full bg-orange-500 transition-all duration-200"
+                    style={{ width: `${(manageHook.progress.done / manageHook.progress.total) * 100}%` }}
+                  />
+                </div>
               </div>
-              <div className="h-1 w-full bg-slate-700 rounded overflow-hidden">
-                <div
-                  className="h-full bg-orange-500 transition-all duration-200"
-                  style={{ width: `${(submitProgress.done / submitProgress.total) * 100}%` }}
-                />
-              </div>
-            </div>
-          )}
-          <div className="px-4 py-3 flex items-center gap-4">
-            <button
-              onClick={handleSubmit}
-              disabled={submitting || includedMatchedCount === 0}
-              className="flex items-center gap-2 rounded bg-orange-600 hover:bg-orange-500 disabled:opacity-40 disabled:cursor-not-allowed px-5 py-2 font-medium text-sm transition-colors"
-            >
-              {submitting && <Spinner className="w-4 h-4" />}
-              {submitting ? 'Adding…' : `Add Selected (${includedMatchedCount})`}
-            </button>
-            {summary && (
-              <span className="text-sm text-slate-400">
-                {summary.added} added · {summary.skipped} skipped · {summary.failed} failed
-              </span>
             )}
-          </div>
-        </footer>
+            <div className="px-4 py-3 flex items-center gap-4">
+              <button
+                onClick={handleManageSubmit}
+                disabled={manageHook.submitting || manageEligibleCount === 0}
+                className="flex items-center gap-2 rounded bg-orange-600 hover:bg-orange-500 disabled:opacity-40 disabled:cursor-not-allowed px-5 py-2 font-medium text-sm transition-colors"
+              >
+                {manageHook.submitting && <Spinner className="w-4 h-4" />}
+                {manageHook.submitting ? 'Applying…' : `Apply to Selected (${manageEligibleCount})`}
+              </button>
+              <label className={`flex items-center gap-1.5 text-xs cursor-pointer ${hasRemoveRows ? 'text-slate-300' : 'text-slate-600 cursor-not-allowed'}`}>
+                <input
+                  type="checkbox"
+                  checked={deleteFiles}
+                  disabled={!hasRemoveRows}
+                  onChange={e => setDeleteFiles(e.target.checked)}
+                  className="accent-orange-500 disabled:opacity-30"
+                />
+                Delete files
+              </label>
+              {manageHook.summary && (
+                <span className="text-sm text-slate-400">
+                  {manageHook.summary.done} applied · {manageHook.summary.failed} failed
+                </span>
+              )}
+            </div>
+          </footer>
+        )
+      ) : (
+        session.rows.length > 0 && (
+          <footer className="shrink-0 bg-slate-800 border-t border-slate-700">
+            {submitProgress && (
+              <div className="px-4 pt-2 space-y-1">
+                <div className="flex justify-between text-xs text-slate-500">
+                  <span>Adding…</span>
+                  <span>{submitProgress.done} / {submitProgress.total}</span>
+                </div>
+                <div className="h-1 w-full bg-slate-700 rounded overflow-hidden">
+                  <div
+                    className="h-full bg-orange-500 transition-all duration-200"
+                    style={{ width: `${(submitProgress.done / submitProgress.total) * 100}%` }}
+                  />
+                </div>
+              </div>
+            )}
+            <div className="px-4 py-3 flex items-center gap-4">
+              <button
+                onClick={handleSubmit}
+                disabled={submitting || includedMatchedCount === 0}
+                className="flex items-center gap-2 rounded bg-orange-600 hover:bg-orange-500 disabled:opacity-40 disabled:cursor-not-allowed px-5 py-2 font-medium text-sm transition-colors"
+              >
+                {submitting && <Spinner className="w-4 h-4" />}
+                {submitting ? 'Adding…' : `Add Selected (${includedMatchedCount})`}
+              </button>
+              {summary && (
+                <span className="text-sm text-slate-400">
+                  {summary.added} added · {summary.skipped} skipped · {summary.failed} failed
+                </span>
+              )}
+            </div>
+          </footer>
+        )
       )}
 
       <ToastStack toasts={toasts} dismiss={dismiss} />
