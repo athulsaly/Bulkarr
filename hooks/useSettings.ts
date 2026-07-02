@@ -16,7 +16,13 @@ interface SettingsActions {
   refreshCache: (service: 'radarr' | 'sonarr') => Promise<{ ok: boolean; error?: string }>
 }
 
-const DEFAULT_SETTINGS: Settings = { radarr: null, sonarr: null }
+const DEFAULT_SETTINGS: Settings = {
+  radarr: null,
+  sonarr: null,
+  jellyfin: null,
+  plex: null,
+  mediaServer: { pollIntervalMinutes: 15, watchedThresholdPct: 90 },
+}
 const DEFAULT_CACHE: Cache = { radarr: null, sonarr: null }
 
 export function useSettings(): SettingsState & SettingsActions {

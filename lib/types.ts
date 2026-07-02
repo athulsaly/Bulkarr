@@ -73,6 +73,9 @@ export interface Settings {
   radarr: ServiceConfig | null
   sonarr: ServiceConfig | null
   tmdbApiKey?: string
+  jellyfin: ServiceConfig | null
+  plex: ServiceConfig | null
+  mediaServer: MediaServerConfig
 }
 
 export interface ServiceCache {
@@ -104,6 +107,8 @@ export interface Store {
   cache: Cache
   sessions: { movies: Session | null; series: Session | null }
   history: HistoryItem[]
+  watchedEvents: WatchedEvent[]
+  lastPolledAt: Partial<Record<MediaServerType, number>>
 }
 
 export type ArrErrorCode = 'UNREACHABLE' | 'AUTH_FAILED' | 'BAD_REQUEST' | 'NOT_FOUND' | 'UNKNOWN'
@@ -134,4 +139,30 @@ export interface ManageResult {
   status: 'done' | 'failed'
   errorCode?: ArrErrorCode
   errorMessage?: string
+}
+
+export type MediaServerType = 'jellyfin' | 'plex'
+
+export interface MediaServerConfig {
+  pollIntervalMinutes: number
+  watchedThresholdPct: number
+}
+
+export interface WatchedEvent {
+  id: string
+  source: 'webhook' | 'poll'
+  mediaServer: MediaServerType
+  mediaType: 'movie' | 'episode'
+  title: string
+  year?: number
+  tmdbId?: number
+  tvdbId?: number
+  seriesTitle?: string
+  seasonNumber?: number
+  episodeNumber?: number
+  progressPct: number
+  watchedAt: number
+  arrId?: number
+  arrTarget?: 'movies' | 'series'
+  matchStatus: 'matched' | 'unmatched' | 'pending'
 }
