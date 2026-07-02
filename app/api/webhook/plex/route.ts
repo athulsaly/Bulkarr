@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { readStore, updateStore } from '@/lib/store'
 import { matchWatchedEvent } from '@/lib/media-matcher'
 import { isDuplicate } from '@/lib/media-dedup'
+import { enqueueRuleMatches } from '@/lib/deletion-executor'
 import { v4 as uuidv4 } from 'uuid'
 import type { WatchedEvent } from '@/lib/types'
 
@@ -76,11 +77,15 @@ export async function POST(req: NextRequest) {
   const cache = { radarr: store.cache.radarr, sonarr: store.cache.sonarr }
   const match = matchWatchedEvent(watchedEvent, cache)
 
+  let storedEvent: WatchedEvent | null = null
   updateStore(s => {
     if (isDuplicate(watchedEvent, s.watchedEvents)) return
-    s.watchedEvents.unshift({ ...watchedEvent, ...match })
+    const stored = { ...watchedEvent, ...match }
+    s.watchedEvents.unshift(stored)
     if (s.watchedEvents.length > 1000) s.watchedEvents = s.watchedEvents.slice(0, 1000)
+    storedEvent = stored
   })
+  if (storedEvent !== null) enqueueRuleMatches(storedEvent)
 
   return NextResponse.json({}, { status: 200 })
 }

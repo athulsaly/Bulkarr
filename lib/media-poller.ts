@@ -2,6 +2,7 @@ import { readStore, updateStore } from './store'
 import { fetchJellyfinHistory, fetchPlexHistory } from './media-client'
 import { isDuplicate } from './media-dedup'
 import { matchWatchedEvent } from './media-matcher'
+import { enqueueRuleMatches } from './deletion-executor'
 import type { WatchedEvent, MediaServerType } from './types'
 
 const MAX_EVENTS = 1000
@@ -34,15 +35,19 @@ async function runPoll(): Promise<void> {
       updateStore(s => { s.lastPolledAt[type] = now })
       continue
     }
+    const newEvents: WatchedEvent[] = []
     updateStore(s => {
       for (const ev of events) {
         if (isDuplicate(ev, s.watchedEvents)) continue
         const match = matchWatchedEvent(ev, cache)
-        s.watchedEvents.unshift({ ...ev, ...match })
+        const stored = { ...ev, ...match }
+        s.watchedEvents.unshift(stored)
+        newEvents.push(stored)
       }
       if (s.watchedEvents.length > MAX_EVENTS) s.watchedEvents = s.watchedEvents.slice(0, MAX_EVENTS)
       s.lastPolledAt[type] = now
     })
+    for (const ev of newEvents) enqueueRuleMatches(ev)
   }
 }
 
