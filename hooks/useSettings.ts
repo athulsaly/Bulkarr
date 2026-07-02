@@ -6,13 +6,13 @@ interface SettingsState {
   settings: Settings
   cache: Cache
   loading: boolean
-  testing: 'radarr' | 'sonarr' | null
+  testing: 'radarr' | 'sonarr' | 'jellyfin' | 'plex' | null
   refreshing: 'radarr' | 'sonarr' | null
 }
 
 interface SettingsActions {
   saveSettings: (patch: Partial<Settings>) => Promise<void>
-  testConnection: (service: 'radarr' | 'sonarr') => Promise<{ ok: boolean; version?: string; error?: string }>
+  testConnection: (service: 'radarr' | 'sonarr' | 'jellyfin' | 'plex') => Promise<{ ok: boolean; version?: string; error?: string }>
   refreshCache: (service: 'radarr' | 'sonarr') => Promise<{ ok: boolean; error?: string }>
 }
 
@@ -29,7 +29,7 @@ export function useSettings(): SettingsState & SettingsActions {
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS)
   const [cache, setCache] = useState<Cache>(DEFAULT_CACHE)
   const [loading, setLoading] = useState(true)
-  const [testing, setTesting] = useState<'radarr' | 'sonarr' | null>(null)
+  const [testing, setTesting] = useState<'radarr' | 'sonarr' | 'jellyfin' | 'plex' | null>(null)
   const [refreshing, setRefreshing] = useState<'radarr' | 'sonarr' | null>(null)
 
   useEffect(() => {
@@ -76,7 +76,7 @@ export function useSettings(): SettingsState & SettingsActions {
     setSettings(prev => ({ ...prev, ...patch }))
   }, [])
 
-  const testConnection = useCallback(async (service: 'radarr' | 'sonarr') => {
+  const testConnection = useCallback(async (service: 'radarr' | 'sonarr' | 'jellyfin' | 'plex') => {
     setTesting(service)
     try {
       const res = await fetch('/api/settings/test', {

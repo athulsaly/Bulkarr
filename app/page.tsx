@@ -15,12 +15,15 @@ import { ManageTable } from '@/components/ManageTable'
 import { ToastStack } from '@/components/ToastStack'
 import { SetupScreen } from '@/components/SetupScreen'
 import { HistoryDrawer } from '@/components/HistoryDrawer'
+import { WatchedDrawer } from '@/components/WatchedDrawer'
 import { NoMatchDrawer } from '@/components/NoMatchDrawer'
 import type { Target, ManageRow } from '@/lib/types'
 
 export default function Page() {
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [historyOpen, setHistoryOpen] = useState(false)
+  const [watchedOpen, setWatchedOpen] = useState(false)
+  const [unmatchedCount, setUnmatchedCount] = useState(0)
   const [noMatchOpen, setNoMatchOpen] = useState(false)
   const { toasts, addToast, dismiss } = useToast()
   const settingsHook = useSettings()
@@ -163,6 +166,18 @@ export default function Page() {
           <button onClick={() => setHistoryOpen(true)} className="text-slate-400 hover:text-slate-100 transition-colors text-sm" title="History">
             History
           </button>
+          <button
+            onClick={() => setWatchedOpen(true)}
+            className="flex items-center gap-1 text-slate-400 hover:text-slate-100 transition-colors text-sm"
+            title="Watched events"
+          >
+            Watched
+            {unmatchedCount > 0 && (
+              <span className="bg-blue-800 text-blue-200 rounded-full px-1.5 py-0.5 text-xs leading-none">
+                {unmatchedCount}
+              </span>
+            )}
+          </button>
           <button onClick={() => setDrawerOpen(true)} className="text-slate-400 hover:text-slate-100 transition-colors text-lg" title="Settings">
             ⚙
           </button>
@@ -171,6 +186,11 @@ export default function Page() {
 
       <SettingsDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} hook={settingsHook} onToast={addToast} />
       <HistoryDrawer open={historyOpen} onClose={() => setHistoryOpen(false)} />
+      <WatchedDrawer
+        open={watchedOpen}
+        onClose={() => setWatchedOpen(false)}
+        onUnmatchedCountChange={setUnmatchedCount}
+      />
       <NoMatchDrawer open={noMatchOpen} onClose={() => setNoMatchOpen(false)} entries={noMatchEntries} onRetry={handleRetry} onClear={handleClearNoMatches} />
 
       <DefaultsBar
