@@ -7,7 +7,10 @@ const config: Config = {
   coverageProvider: 'v8',
   testEnvironment: 'node',
   setupFilesAfterEnv: ['<rootDir>/jest.setup.ts'],
-  moduleNameMapper: { '^@/(.*)$': '<rootDir>/$1' },
+  moduleNameMapper: {
+    '^@/(.*)$': '<rootDir>/$1',
+    '^uuid$': '<rootDir>/jest-uuid-mock.js',
+  },
   testMatch: ['**/__tests__/**/*.test.ts', '**/__tests__/**/*.test.tsx'],
   testPathIgnorePatterns: ['/node_modules/', '/.next/'],
 }

@@ -20,7 +20,13 @@ afterEach(() => {
 test('readStore returns default store when file absent', async () => {
   const { readStore } = await import('@/lib/store')
   const store = readStore()
-  expect(store.settings).toEqual({ radarr: null, sonarr: null })
+  expect(store.settings).toEqual({
+    radarr: null,
+    sonarr: null,
+    jellyfin: null,
+    plex: null,
+    mediaServer: { pollIntervalMinutes: 15, watchedThresholdPct: 90 },
+  })
   expect(store.sessions).toEqual({ movies: null, series: null })
 })
 
