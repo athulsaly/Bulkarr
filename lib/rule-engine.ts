@@ -1,5 +1,5 @@
 import { v4 as uuidv4 } from 'uuid'
-import type { AutoDeleteRule, DeletionQueueItem, WatchedEvent } from './types'
+import type { AutoDeleteRule, DeletionQueueItem, WatchedEvent } from '@/lib/types'
 
 export function delayToMs(amount: number, unit: 'days' | 'weeks' | 'months' | 'year'): number {
   const DAY = 86_400_000
@@ -50,8 +50,8 @@ export function evaluateRules(
 
     // Pick most specific rule: specific scope for this arrId > global
     const specific = matching.find(r => r.scope === 'specific' && r.arrId === event.arrId)
-    const global = matching.find(r => r.scope === 'global')
-    const rule = specific ?? global
+    const globalRule = matching.find(r => r.scope === 'global')
+    const rule = specific ?? globalRule
     if (!rule) continue
 
     if (granularity === 'movie' || granularity === 'episode') {
