@@ -1,6 +1,6 @@
 import fs from 'fs'
 import path from 'path'
-import type { Store, MediaServerConfig, Settings } from './types'
+import type { Store, MediaServerConfig, Settings, AutoDeleteRule, DeletionQueueItem } from './types'
 
 const DEFAULT_STORE: Store = {
   settings: {
@@ -15,6 +15,8 @@ const DEFAULT_STORE: Store = {
   history: [],
   watchedEvents: [],
   lastPolledAt: {},
+  rules: [],
+  deletionQueue: [],
 }
 
 function getStorePath(): string {
@@ -42,6 +44,11 @@ export function readStore(): Store {
     }
     if (raw.lastPolledAt && typeof raw.lastPolledAt === 'object') {
       Object.assign(store.lastPolledAt, raw.lastPolledAt)
+    }
+    if (Array.isArray(raw.rules)) store.rules = raw.rules as AutoDeleteRule[]
+    if (Array.isArray(raw.deletionQueue)) {
+      store.deletionQueue = (raw.deletionQueue as DeletionQueueItem[])
+        .slice(0, 500)
     }
     return store
   } catch {

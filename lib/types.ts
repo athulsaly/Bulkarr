@@ -103,6 +103,45 @@ export interface HistoryItem {
   addedAt: number
 }
 
+export interface AutoDeleteRule {
+  id: string
+  name: string
+  enabled: boolean
+  mediaType: 'movie' | 'series'
+  granularity: 'movie' | 'episode' | 'season'
+  action: 'delete' | 'unmonitor'
+  deleteFiles: boolean
+  delayAmount: number
+  delayUnit: 'days' | 'weeks' | 'months' | 'year'
+  scope: 'global' | 'specific'
+  arrId?: number
+  arrTarget?: 'movies' | 'series'
+  scopeTitle?: string
+}
+
+export type DeletionQueueStatus = 'pending' | 'done' | 'failed' | 'cancelled'
+
+export interface DeletionQueueItem {
+  id: string
+  ruleId: string
+  ruleName: string
+  watchedEventId: string
+  arrId: number
+  arrTarget: 'movies' | 'series'
+  action: 'delete' | 'unmonitor'
+  deleteFiles: boolean
+  granularity: 'movie' | 'episode' | 'season'
+  title: string
+  seriesTitle?: string
+  seasonNumber?: number
+  episodeNumber?: number
+  scheduledAt: number
+  status: DeletionQueueStatus
+  retryCount: number
+  executedAt?: number
+  errorMessage?: string
+}
+
 export interface Store {
   settings: Settings
   cache: Cache
@@ -110,6 +149,8 @@ export interface Store {
   history: HistoryItem[]
   watchedEvents: WatchedEvent[]
   lastPolledAt: Partial<Record<MediaServerType, number>>
+  rules: AutoDeleteRule[]
+  deletionQueue: DeletionQueueItem[]
 }
 
 export type ArrErrorCode = 'UNREACHABLE' | 'AUTH_FAILED' | 'BAD_REQUEST' | 'NOT_FOUND' | 'UNKNOWN'
