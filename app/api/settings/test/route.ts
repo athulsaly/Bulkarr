@@ -9,10 +9,47 @@ export async function POST(req: NextRequest) {
   const { service, url: inlineUrl, apiKey: inlineKey } = await req.json() as {
     service: string; url?: string; apiKey?: string
   }
-  if (service !== 'radarr' && service !== 'sonarr')
-    return NextResponse.json({ ok: false, error: 'Invalid service' }, { status: 400 })
+
   if (inlineUrl !== undefined && !isValidServiceUrl(inlineUrl))
     return NextResponse.json({ ok: false, error: 'Invalid URL — must start with http:// or https://' }, { status: 400 })
+
+  // Jellyfin test
+  if (service === 'jellyfin') {
+    const config = inlineUrl && inlineKey ? { url: inlineUrl, apiKey: inlineKey } : readStore().settings.jellyfin
+    if (!config) return NextResponse.json({ ok: false, error: 'Not configured' }, { status: 400 })
+    try {
+      const res = await fetch(`${config.url.replace(/\/+$/, '')}/Users`, {
+        headers: { 'X-Emby-Token': config.apiKey, Accept: 'application/json' },
+      })
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      const users = await res.json()
+      if (!Array.isArray(users)) throw new Error('Unexpected response from Jellyfin')
+      return NextResponse.json({ ok: true })
+    } catch (e) {
+      return NextResponse.json({ ok: false, error: (e as Error).message })
+    }
+  }
+
+  // Plex test
+  if (service === 'plex') {
+    const config = inlineUrl && inlineKey ? { url: inlineUrl, apiKey: inlineKey } : readStore().settings.plex
+    if (!config) return NextResponse.json({ ok: false, error: 'Not configured' }, { status: 400 })
+    try {
+      const res = await fetch(`${config.url.replace(/\/+$/, '')}/`, {
+        headers: { 'X-Plex-Token': config.apiKey, Accept: 'application/json' },
+      })
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      const data = await res.json() as { MediaContainer?: unknown }
+      if (!data.MediaContainer) throw new Error('Unexpected response from Plex')
+      return NextResponse.json({ ok: true })
+    } catch (e) {
+      return NextResponse.json({ ok: false, error: (e as Error).message })
+    }
+  }
+
+  // Radarr / Sonarr (existing behaviour)
+  if (service !== 'radarr' && service !== 'sonarr')
+    return NextResponse.json({ ok: false, error: 'Invalid service' }, { status: 400 })
   const config = (inlineUrl && inlineKey)
     ? { url: inlineUrl, apiKey: inlineKey }
     : readStore().settings[service]
