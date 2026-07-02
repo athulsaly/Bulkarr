@@ -97,3 +97,86 @@ test('fetchJellyfinHistory throws on HTTP error', async () => {
   const { fetchJellyfinHistory } = await import('@/lib/media-client')
   await expect(fetchJellyfinHistory(BASE_URL, API_KEY, 0, 90)).rejects.toThrow('HTTP 401')
 })
+
+const PLEX_URL = 'http://plex:32400'
+const PLEX_TOKEN = 'plextoken'
+
+test('fetchPlexHistory maps movie to WatchedEvent', async () => {
+  const history = {
+    MediaContainer: {
+      Metadata: [{
+        ratingKey: '42', type: 'movie', title: 'Inception', year: 2010,
+        viewedAt: Math.floor((NOW - 1000) / 1000),
+        viewOffset: 5700000, duration: 6000000,
+      }],
+    },
+  }
+  const meta = { MediaContainer: { Metadata: [{ Guid: [{ id: 'tmdb://27205' }] }] } }
+  mockSequential([{ status: 200, body: history }, { status: 200, body: meta }])
+  const { fetchPlexHistory } = await import('@/lib/media-client')
+  const result = await fetchPlexHistory(PLEX_URL, PLEX_TOKEN, NOW - 10_000, 90)
+  expect(result).toHaveLength(1)
+  expect(result[0]).toMatchObject({
+    mediaServer: 'plex', mediaType: 'movie', title: 'Inception',
+    year: 2010, tmdbId: 27205, source: 'poll', matchStatus: 'pending',
+  })
+  expect(result[0].progressPct).toBeCloseTo(95, 0)
+})
+
+test('fetchPlexHistory maps episode to WatchedEvent', async () => {
+  const history = {
+    MediaContainer: {
+      Metadata: [{
+        ratingKey: '7', type: 'episode', title: 'Pilot',
+        grandparentTitle: 'Breaking Bad', parentIndex: 1, index: 1,
+        viewedAt: Math.floor((NOW - 1000) / 1000),
+        viewOffset: 2700000, duration: 2700000,
+      }],
+    },
+  }
+  const meta = { MediaContainer: { Metadata: [{ Guid: [{ id: 'tvdb://81189' }] }] } }
+  mockSequential([{ status: 200, body: history }, { status: 200, body: meta }])
+  const { fetchPlexHistory } = await import('@/lib/media-client')
+  const result = await fetchPlexHistory(PLEX_URL, PLEX_TOKEN, NOW - 10_000, 90)
+  expect(result).toHaveLength(1)
+  expect(result[0]).toMatchObject({
+    mediaType: 'episode', seriesTitle: 'Breaking Bad',
+    seasonNumber: 1, episodeNumber: 1, tvdbId: 81189,
+  })
+})
+
+test('fetchPlexHistory filters items below threshold', async () => {
+  const history = {
+    MediaContainer: {
+      Metadata: [{
+        ratingKey: '42', type: 'movie', title: 'Inception',
+        viewedAt: Math.floor((NOW - 1000) / 1000),
+        viewOffset: 1000, duration: 100_000,
+      }],
+    },
+  }
+  mockSequential([{ status: 200, body: history }])
+  const { fetchPlexHistory } = await import('@/lib/media-client')
+  expect(await fetchPlexHistory(PLEX_URL, PLEX_TOKEN, NOW - 10_000, 90)).toHaveLength(0)
+})
+
+test('fetchPlexHistory filters items before since', async () => {
+  const history = {
+    MediaContainer: {
+      Metadata: [{
+        ratingKey: '42', type: 'movie', title: 'Inception',
+        viewedAt: Math.floor((NOW - 100_000) / 1000),
+        viewOffset: 5700000, duration: 6000000,
+      }],
+    },
+  }
+  mockSequential([{ status: 200, body: history }])
+  const { fetchPlexHistory } = await import('@/lib/media-client')
+  expect(await fetchPlexHistory(PLEX_URL, PLEX_TOKEN, NOW, 90)).toHaveLength(0)
+})
+
+test('fetchPlexHistory returns empty on empty MediaContainer', async () => {
+  mockSequential([{ status: 200, body: { MediaContainer: {} } }])
+  const { fetchPlexHistory } = await import('@/lib/media-client')
+  expect(await fetchPlexHistory(PLEX_URL, PLEX_TOKEN, 0, 90)).toEqual([])
+})
