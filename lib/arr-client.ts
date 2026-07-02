@@ -112,3 +112,78 @@ export async function unmonitorSeries(url: string, key: string, id: number): Pro
     body: JSON.stringify({ ...series, monitored: false }),
   })
 }
+
+interface SonarrEpisode {
+  id: number
+  episodeNumber: number
+  episodeFileId: number
+  monitored: boolean
+  [key: string]: unknown
+}
+
+interface SonarrEpisodeFile {
+  id: number
+  [key: string]: unknown
+}
+
+export async function getSeasonEpisodeFileCount(
+  url: string, key: string,
+  seriesId: number, seasonNumber: number,
+): Promise<number> {
+  const files = await arrFetch(url, key, `/api/v3/episodefile?seriesId=${seriesId}&seasonNumber=${seasonNumber}`) as SonarrEpisodeFile[]
+  return files.length
+}
+
+export async function deleteEpisodeFile(
+  url: string, key: string,
+  seriesId: number, seasonNumber: number, episodeNumber: number,
+): Promise<void> {
+  const episodes = await arrFetch(url, key, `/api/v3/episode?seriesId=${seriesId}&seasonNumber=${seasonNumber}`) as SonarrEpisode[]
+  const ep = episodes.find(e => e.episodeNumber === episodeNumber)
+  if (!ep || !ep.episodeFileId) return
+  await arrFetch(url, key, `/api/v3/episodefile/${ep.episodeFileId}`, { method: 'DELETE' })
+}
+
+export async function deleteSeasonFiles(
+  url: string, key: string,
+  seriesId: number, seasonNumber: number,
+): Promise<void> {
+  const files = await arrFetch(url, key, `/api/v3/episodefile?seriesId=${seriesId}&seasonNumber=${seasonNumber}`) as SonarrEpisodeFile[]
+  await Promise.all(files.map(f => arrFetch(url, key, `/api/v3/episodefile/${f.id}`, { method: 'DELETE' })))
+}
+
+export async function unmonitorEpisode(
+  url: string, key: string,
+  seriesId: number, seasonNumber: number, episodeNumber: number,
+): Promise<void> {
+  const episodes = await arrFetch(url, key, `/api/v3/episode?seriesId=${seriesId}&seasonNumber=${seasonNumber}`) as SonarrEpisode[]
+  const ep = episodes.find(e => e.episodeNumber === episodeNumber)
+  if (!ep) return
+  await arrFetch(url, key, `/api/v3/episode/${ep.id}`, {
+    method: 'PUT',
+    body: JSON.stringify({ ...ep, monitored: false }),
+  })
+}
+
+interface SonarrSeriesWithSeasons {
+  id: number
+  seasons: Array<{ seasonNumber: number; monitored: boolean; [key: string]: unknown }>
+  [key: string]: unknown
+}
+
+export async function unmonitorSeason(
+  url: string, key: string,
+  seriesId: number, seasonNumber: number,
+): Promise<void> {
+  const series = await arrFetch(url, key, `/api/v3/series/${seriesId}`) as SonarrSeriesWithSeasons
+  const updated = {
+    ...series,
+    seasons: series.seasons.map(s =>
+      s.seasonNumber === seasonNumber ? { ...s, monitored: false } : s,
+    ),
+  }
+  await arrFetch(url, key, `/api/v3/series/${seriesId}`, {
+    method: 'PUT',
+    body: JSON.stringify(updated),
+  })
+}
