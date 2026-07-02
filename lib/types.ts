@@ -17,6 +17,7 @@ export interface LangProfile {
 export interface LibraryItem {
   id: number
   title: string
+  year?: number
   tmdbId?: number
   tvdbId?: number
 }

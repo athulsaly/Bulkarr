@@ -38,7 +38,11 @@ export function useSettings(): SettingsState & SettingsActions {
       .then(r => r.json())
       .then(async data => {
         if (cancelled) return
-        const settings: Settings = data.settings ?? DEFAULT_SETTINGS
+        const settings: Settings = {
+          ...DEFAULT_SETTINGS,
+          ...data.settings,
+          mediaServer: { ...DEFAULT_SETTINGS.mediaServer, ...(data.settings?.mediaServer ?? {}) },
+        }
         const cache: Cache = data.cache ?? DEFAULT_CACHE
         setSettings(settings)
         setCache(cache)

@@ -30,11 +30,20 @@ export function matchWatchedEvent(event: EventInput, cache: Cache): MatchResult 
   }
 
   // 4. Title+year fallback (both libraries)
-  const normQuery = normalise(event.title + (event.year != null ? ` ${event.year}` : ''))
-  const radarrHit = radarrLib.find(i => normalise(i.title + (i.tmdbId != null ? '' : '')) === normQuery ||
-    normalise(`${i.title} `) === normalise(event.title + ' '))
+  const normTitle = normalise(event.title)
+  const radarrHit = radarrLib.find(i => {
+    const iNormTitle = normalise(i.title)
+    if (iNormTitle !== normTitle) return false
+    if (event.year != null && i.year != null) return i.year === event.year
+    return true  // year unknown on one side — accept title match
+  })
   if (radarrHit) return { arrId: radarrHit.id, arrTarget: 'movies', matchStatus: 'matched' }
-  const sonarrHit = sonarrLib.find(i => normalise(`${i.title} `) === normalise(event.title + ' '))
+  const sonarrHit = sonarrLib.find(i => {
+    const iNormTitle = normalise(i.title)
+    if (iNormTitle !== normTitle) return false
+    if (event.year != null && i.year != null) return i.year === event.year
+    return true  // year unknown on one side — accept title match
+  })
   if (sonarrHit) return { arrId: sonarrHit.id, arrTarget: 'series', matchStatus: 'matched' }
 
   // 5. No cache at all → pending (can re-match later)

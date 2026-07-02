@@ -15,8 +15,12 @@ export async function POST(req: NextRequest) {
 
   // Jellyfin test
   if (service === 'jellyfin') {
-    const config = inlineUrl && inlineKey ? { url: inlineUrl, apiKey: inlineKey } : readStore().settings.jellyfin
-    if (!config) return NextResponse.json({ ok: false, error: 'Not configured' }, { status: 400 })
+    const stored = readStore().settings.jellyfin
+    const config = {
+      url: inlineUrl || stored?.url || '',
+      apiKey: inlineKey || stored?.apiKey || '',
+    }
+    if (!config.url || !config.apiKey) return NextResponse.json({ ok: false, error: 'Not configured' }, { status: 400 })
     try {
       const res = await fetch(`${config.url.replace(/\/+$/, '')}/Users`, {
         headers: { 'X-Emby-Token': config.apiKey, Accept: 'application/json' },
@@ -32,8 +36,12 @@ export async function POST(req: NextRequest) {
 
   // Plex test
   if (service === 'plex') {
-    const config = inlineUrl && inlineKey ? { url: inlineUrl, apiKey: inlineKey } : readStore().settings.plex
-    if (!config) return NextResponse.json({ ok: false, error: 'Not configured' }, { status: 400 })
+    const stored = readStore().settings.plex
+    const config = {
+      url: inlineUrl || stored?.url || '',
+      apiKey: inlineKey || stored?.apiKey || '',
+    }
+    if (!config.url || !config.apiKey) return NextResponse.json({ ok: false, error: 'Not configured' }, { status: 400 })
     try {
       const res = await fetch(`${config.url.replace(/\/+$/, '')}/`, {
         headers: { 'X-Plex-Token': config.apiKey, Accept: 'application/json' },

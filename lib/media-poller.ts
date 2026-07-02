@@ -7,10 +7,10 @@ import type { WatchedEvent, MediaServerType } from './types'
 const MAX_EVENTS = 1000
 const DAY_MS = 24 * 60 * 60 * 1000
 
-async function pollOne(type: MediaServerType, since: number): Promise<WatchedEvent[]> {
+async function pollOne(type: MediaServerType, since: number): Promise<WatchedEvent[] | null> {
   const store = readStore()
   const cfg = store.settings[type]
-  if (!cfg) return []
+  if (!cfg) return null  // not configured
   const threshold = store.settings.mediaServer.watchedThresholdPct
   try {
     if (type === 'jellyfin') return await fetchJellyfinHistory(cfg.url, cfg.apiKey, since, threshold)
@@ -29,6 +29,7 @@ async function runPoll(): Promise<void> {
   for (const type of ['jellyfin', 'plex'] as const) {
     const since = store.lastPolledAt[type] ?? now - DAY_MS
     const events = await pollOne(type, since)
+    if (events === null) continue  // not configured — do NOT advance lastPolledAt
     if (!events.length) {
       updateStore(s => { s.lastPolledAt[type] = now })
       continue

@@ -49,13 +49,13 @@ export async function getLangProfiles(url: string, key: string): Promise<LangPro
 }
 
 export async function getMovieLibrary(url: string, key: string): Promise<LibraryItem[]> {
-  const items = await arrFetch(url, key, '/api/v3/movie') as Array<{ id: number; title: string; tmdbId: number }>
-  return items.map(m => ({ id: m.id, title: m.title, tmdbId: m.tmdbId }))
+  const items = await arrFetch(url, key, '/api/v3/movie') as Array<{ id: number; title: string; year: number; tmdbId: number }>
+  return items.map(m => ({ id: m.id, title: m.title, year: m.year, tmdbId: m.tmdbId }))
 }
 
 export async function getSeriesLibrary(url: string, key: string): Promise<LibraryItem[]> {
-  const items = await arrFetch(url, key, '/api/v3/series') as Array<{ id: number; title: string; tvdbId: number }>
-  return items.map(s => ({ id: s.id, title: s.title, tvdbId: s.tvdbId }))
+  const items = await arrFetch(url, key, '/api/v3/series') as Array<{ id: number; title: string; year: number; tvdbId: number }>
+  return items.map(s => ({ id: s.id, title: s.title, year: s.year, tvdbId: s.tvdbId }))
 }
 
 function posterFrom(item: { remotePoster?: string; images?: Array<{ coverType: string; remoteUrl: string }> }) {
