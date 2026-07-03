@@ -40,6 +40,6 @@ export async function POST(req: NextRequest) {
     const result = await runExecutorCycle()
     return NextResponse.json(result)
   } catch (e) {
-    return NextResponse.json({ executed: 0, errorMessage: e instanceof Error ? e.message : String(e) })
+    return NextResponse.json({ executed: 0, failed: 0, errorMessage: e instanceof Error ? e.message : String(e) })
   }
 }

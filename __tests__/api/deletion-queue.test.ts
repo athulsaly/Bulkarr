@@ -2,6 +2,7 @@
 
 import { GET } from '@/app/api/deletion-queue/route'
 import { DELETE as CancelItem } from '@/app/api/deletion-queue/[id]/route'
+import { POST as ExecuteItem } from '@/app/api/deletion-queue/[id]/execute/route'
 import { POST as TriggerPost } from '@/app/api/deletion-queue/trigger/route'
 import { POST as EvaluatePost } from '@/app/api/deletion-queue/evaluate/route'
 import { POST as ExecuteEventPost } from '@/app/api/deletion-queue/execute-event/route'
@@ -87,6 +88,31 @@ test('DELETE returns 404 for unknown id', async () => {
   const req = new NextRequest('http://localhost/api/deletion-queue/nope', { method: 'DELETE' })
   const res = await CancelItem(req, { params: Promise.resolve({ id: 'nope' }) })
   expect(res.status).toBe(404)
+})
+
+// --- POST /api/deletion-queue/[id]/execute ---
+
+test('execute returns 404 for unknown id', async () => {
+  const req = new NextRequest('http://localhost/api/deletion-queue/nope/execute', { method: 'POST' })
+  const res = await ExecuteItem(req, { params: Promise.resolve({ id: 'nope' }) })
+  expect(res.status).toBe(404)
+})
+
+test('execute returns 400 if item is not pending', async () => {
+  mockStore.deletionQueue = [{ ...pendingItem, status: 'done' }]
+  const req = new NextRequest('http://localhost/api/deletion-queue/q1/execute', { method: 'POST' })
+  const res = await ExecuteItem(req, { params: Promise.resolve({ id: 'q1' }) })
+  expect(res.status).toBe(400)
+})
+
+test('execute forces scheduledAt to now and calls runExecutorCycle', async () => {
+  mockStore.deletionQueue = [{ ...pendingItem }]
+  const req = new NextRequest('http://localhost/api/deletion-queue/q1/execute', { method: 'POST' })
+  const res = await ExecuteItem(req, { params: Promise.resolve({ id: 'q1' }) })
+  const body = await res.json()
+  expect(res.status).toBe(200)
+  expect(body.ok).toBe(true)
+  expect(body.executed).toBe(2)
 })
 
 // --- POST /api/deletion-queue/trigger ---
