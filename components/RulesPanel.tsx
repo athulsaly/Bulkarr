@@ -16,6 +16,13 @@ const BLANK_FORM: Partial<AutoDeleteRule> = {
   scope: 'global',
 }
 
+const STATUS_CHIP: Record<DeletionQueueStatus, string> = {
+  pending: 'bg-yellow-800 text-yellow-200',
+  done: 'bg-green-800 text-green-200',
+  failed: 'bg-red-900 text-red-300',
+  cancelled: 'bg-slate-700 text-slate-400',
+}
+
 function delayLabel(r: AutoDeleteRule): string {
   return r.delayUnit === 'year' ? '1 year' : `${r.delayAmount} ${r.delayUnit}`
 }
@@ -53,9 +60,10 @@ export function RulesPanel() {
   }, [])
 
   const loadQueue = useCallback(() => {
-    const url = queueFilter === 'all' ? '/api/deletion-queue' : `/api/deletion-queue?status=${queueFilter}`
-    fetch(url).then(r => r.json()).then(d => setQueue(d.items ?? []))
-  }, [queueFilter])
+    fetch('/api/deletion-queue')
+      .then(r => r.json())
+      .then(d => setQueue(d.items ?? []))
+  }, [])
 
   useEffect(() => { loadRules(); loadQueue() }, [loadRules, loadQueue])
 
@@ -134,13 +142,6 @@ export function RulesPanel() {
     done: queue.filter(i => i.status === 'done').length,
     failed: queue.filter(i => i.status === 'failed').length,
     cancelled: queue.filter(i => i.status === 'cancelled').length,
-  }
-
-  const STATUS_CHIP: Record<DeletionQueueStatus, string> = {
-    pending: 'bg-yellow-800 text-yellow-200',
-    done: 'bg-green-800 text-green-200',
-    failed: 'bg-red-900 text-red-300',
-    cancelled: 'bg-slate-700 text-slate-400',
   }
 
   return (

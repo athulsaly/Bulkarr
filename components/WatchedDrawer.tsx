@@ -35,7 +35,7 @@ export function WatchedDrawer({ open, onClose, onUnmatchedCountChange }: Props) 
   const [loading, setLoading] = useState(false)
   const [rematching, setRematching] = useState(false)
   const [filter, setFilter] = useState<Filter>('all')
-  const [executing, setExecuting] = useState<Record<string, 'running' | 'done' | 'error'>>({})
+  const [executing, setExecuting] = useState<Record<string, 'running' | 'done' | 'error' | 'noop'>>({})
 
   const handleExecuteEvent = async (eventId: string) => {
     setExecuting(prev => ({ ...prev, [eventId]: 'running' }))
@@ -46,7 +46,10 @@ export function WatchedDrawer({ open, onClose, onUnmatchedCountChange }: Props) 
         body: JSON.stringify({ watchedEventId: eventId }),
       })
       const data = await res.json() as { executed: number }
-      setExecuting(prev => ({ ...prev, [eventId]: res.ok && data.executed > 0 ? 'done' : 'error' }))
+      setExecuting(prev => ({
+        ...prev,
+        [eventId]: !res.ok ? 'error' : data.executed > 0 ? 'done' : 'noop',
+      }))
     } catch {
       setExecuting(prev => ({ ...prev, [eventId]: 'error' }))
     }
@@ -187,14 +190,24 @@ export function WatchedDrawer({ open, onClose, onUnmatchedCountChange }: Props) 
                   <button
                     onClick={() => handleExecuteEvent(ev.id)}
                     disabled={executing[ev.id] === 'running'}
-                    title={executing[ev.id] === 'done' ? 'Executed' : executing[ev.id] === 'error' ? 'Failed' : 'Delete now via rules'}
+                    title={
+                      executing[ev.id] === 'done' ? 'Executed' :
+                      executing[ev.id] === 'error' ? 'Failed' :
+                      executing[ev.id] === 'noop' ? 'No matching rules' :
+                      'Delete now via rules'
+                    }
                     className={`text-xs px-1.5 py-0.5 rounded ${
                       executing[ev.id] === 'done' ? 'bg-green-800 text-green-200' :
                       executing[ev.id] === 'error' ? 'bg-red-900 text-red-300' :
+                      executing[ev.id] === 'noop' ? 'bg-slate-700 text-slate-400' :
                       'bg-amber-700 hover:bg-amber-600 text-white'
                     } disabled:opacity-50`}
                   >
-                    {executing[ev.id] === 'running' ? '…' : executing[ev.id] === 'done' ? '✓' : executing[ev.id] === 'error' ? '!' : '⚡'}
+                    {executing[ev.id] === 'running' ? '…' :
+                     executing[ev.id] === 'done' ? '✓' :
+                     executing[ev.id] === 'error' ? '!' :
+                     executing[ev.id] === 'noop' ? '–' :
+                     '⚡'}
                   </button>
                 )}
                 <button
