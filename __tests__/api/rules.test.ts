@@ -102,6 +102,14 @@ test('POST returns 400 when granularity=movie but mediaType=series', async () =>
   expect(res.status).toBe(400)
 })
 
+// --- GET /api/rules/[id] ---
+
+test('GET /api/rules/[id] returns 404 for unknown id', async () => {
+  const req = new NextRequest('http://localhost/api/rules/nope')
+  const res = await GETById(req, { params: Promise.resolve({ id: 'nope' }) })
+  expect(res.status).toBe(404)
+})
+
 // --- PUT /api/rules/[id] ---
 
 test('PUT updates a rule', async () => {
