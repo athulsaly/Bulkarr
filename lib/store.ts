@@ -47,8 +47,10 @@ export function readStore(): Store {
     }
     if (Array.isArray(raw.rules)) store.rules = raw.rules as AutoDeleteRule[]
     if (Array.isArray(raw.deletionQueue)) {
-      store.deletionQueue = (raw.deletionQueue as DeletionQueueItem[])
-        .slice(0, 500)
+      const rawQueue = raw.deletionQueue as DeletionQueueItem[]
+      const pending = rawQueue.filter(i => i.status === 'pending')
+      const terminal = rawQueue.filter(i => i.status !== 'pending')
+      store.deletionQueue = [...pending, ...terminal].slice(0, 500)
     }
     return store
   } catch {

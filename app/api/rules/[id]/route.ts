@@ -46,6 +46,15 @@ export async function PUT(req: NextRequest, { params }: Params) {
 
   updateStore(s => { s.rules[idx] = updated })
 
+  // Cancel pending queue items when rule is disabled
+  if (!updated.enabled) {
+    updateStore(s => {
+      for (const qi of s.deletionQueue) {
+        if (qi.ruleId === id && qi.status === 'pending') qi.status = 'cancelled'
+      }
+    })
+  }
+
   const matchedEvents = readStore().watchedEvents.filter(e => e.matchStatus === 'matched')
   let enqueued = 0
   for (const ev of matchedEvents) {
