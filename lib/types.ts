@@ -22,6 +22,23 @@ export interface LibraryItem {
   tvdbId?: number
 }
 
+export interface LibraryItemFull extends LibraryItem {
+  monitored: boolean
+  hasFile: boolean
+  qualityProfileId: number
+  qualityProfileName?: string
+  sizeOnDisk: number
+  addedDate: string
+  posterUrl?: string
+  arrStatus?: string
+  assignedRules: AutoDeleteRule[]
+}
+
+export interface PosterCache {
+  movies: Record<number, string>
+  series: Record<number, string>
+}
+
 export interface ArrItem {
   title: string
   year: number
@@ -151,6 +168,7 @@ export interface Store {
   lastPolledAt: Partial<Record<MediaServerType, number>>
   rules: AutoDeleteRule[]
   deletionQueue: DeletionQueueItem[]
+  posterCache: PosterCache
 }
 
 export type ArrErrorCode = 'UNREACHABLE' | 'AUTH_FAILED' | 'BAD_REQUEST' | 'NOT_FOUND' | 'UNKNOWN'

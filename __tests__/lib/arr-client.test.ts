@@ -74,30 +74,30 @@ test('deleteSeries calls DELETE /api/v3/series/{id}', async () => {
   expect(call[1].method).toBe('DELETE')
 })
 
-test('unmonitorMovie GETs then PUTs with monitored=false', async () => {
-  const fullMovie = { id: 5, title: 'Inception', year: 2010, monitored: true, qualityProfileId: 1, rootFolderPath: '/movies', minimumAvailability: 'released', addOptions: {} }
+test('unmonitorMovie PUTs to /movie/editor with movieIds and monitored=false', async () => {
   global.fetch = jest.fn()
-    .mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve(fullMovie) })
-    .mockResolvedValueOnce({ ok: true, status: 202, json: () => Promise.resolve({ ...fullMovie, monitored: false }) })
+    .mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve([{ id: 5, monitored: false }]) })
   const { unmonitorMovie } = await import('@/lib/arr-client')
   await unmonitorMovie(BASE, KEY, 5)
   const calls = (global.fetch as jest.Mock).mock.calls
-  expect(calls[0][0]).toBe(`${BASE}/api/v3/movie/5`)
-  expect(calls[0][1].method).toBeUndefined()
-  expect(calls[1][0]).toBe(`${BASE}/api/v3/movie/5`)
-  expect(calls[1][1].method).toBe('PUT')
-  const putBody = JSON.parse(calls[1][1].body)
-  expect(putBody.monitored).toBe(false)
+  expect(calls).toHaveLength(1)
+  expect(calls[0][0]).toBe(`${BASE}/api/v3/movie/editor`)
+  expect(calls[0][1].method).toBe('PUT')
+  const body = JSON.parse(calls[0][1].body)
+  expect(body.movieIds).toEqual([5])
+  expect(body.monitored).toBe(false)
 })
 
-test('unmonitorSeries GETs then PUTs with monitored=false', async () => {
-  const fullSeries = { id: 3, title: 'Breaking Bad', year: 2008, monitored: true, qualityProfileId: 1, rootFolderPath: '/series', seriesType: 'standard', seasonFolder: true }
+test('unmonitorSeries PUTs to /series/editor with seriesIds and monitored=false', async () => {
   global.fetch = jest.fn()
-    .mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve(fullSeries) })
-    .mockResolvedValueOnce({ ok: true, status: 202, json: () => Promise.resolve({ ...fullSeries, monitored: false }) })
+    .mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve([{ id: 3, monitored: false }]) })
   const { unmonitorSeries } = await import('@/lib/arr-client')
   await unmonitorSeries(BASE, KEY, 3)
   const calls = (global.fetch as jest.Mock).mock.calls
-  const putBody = JSON.parse(calls[1][1].body)
-  expect(putBody.monitored).toBe(false)
+  expect(calls).toHaveLength(1)
+  expect(calls[0][0]).toBe(`${BASE}/api/v3/series/editor`)
+  expect(calls[0][1].method).toBe('PUT')
+  const body = JSON.parse(calls[0][1].body)
+  expect(body.seriesIds).toEqual([3])
+  expect(body.monitored).toBe(false)
 })

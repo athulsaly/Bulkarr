@@ -7,6 +7,9 @@ function parseLines(raw: string): string[] {
   return raw.split(/[\n,]+/).map(l => l.trim()).filter(Boolean)
 }
 
+
+
+
 function normalise(s: string): string {
   return s.toLowerCase().replace(/[^a-z0-9 ]/g, '').replace(/\s+/g, ' ').trim()
 }
@@ -22,12 +25,14 @@ interface ManageSummary { done: number; failed: number }
 
 interface ManageActions {
   match: (rawInput: string, target: 'movies' | 'series', cache: Cache) => ManageRow[]
+  lookup: (rawInput: string, target: 'movies' | 'series') => Promise<ManageRow[]>
   submit: (
     rows: ManageRow[],
     target: 'movies' | 'series',
     deleteFiles: boolean,
     updateRow: (id: string, patch: Partial<ManageRow>) => void,
   ) => Promise<ManageSummary>
+  looking: boolean
   submitting: boolean
   progress: { done: number; total: number } | null
   summary: ManageSummary | null
@@ -35,6 +40,7 @@ interface ManageActions {
 }
 
 export function useManage(): ManageActions {
+  const [looking, setLooking] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [summary, setSummary] = useState<ManageSummary | null>(null)
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null)
@@ -56,6 +62,26 @@ export function useManage(): ManageActions {
         status: libraryMatches.length > 0 ? 'matched' : 'no_match',
       }
     })
+  }, [])
+
+  const lookup = useCallback(async (rawInput: string, target: 'movies' | 'series'): Promise<ManageRow[]> => {
+    const titles = Array.from(new Set(parseLines(rawInput)))
+    if (!titles.length) return []
+    setLooking(true)
+    try {
+      const res = await fetch('/api/manage/lookup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ target, titles }),
+      })
+      if (!res.ok) return []
+      const data = await res.json() as { rows: ManageRow[] }
+      return data.rows ?? []
+    } catch {
+      return []
+    } finally {
+      setLooking(false)
+    }
   }, [])
 
   const submit = useCallback(async (
@@ -107,5 +133,5 @@ export function useManage(): ManageActions {
     setProgress(null)
   }, [])
 
-  return { match, submit, submitting, progress, summary, clearSummary }
+  return { match, lookup, looking, submit, submitting, progress, summary, clearSummary }
 }

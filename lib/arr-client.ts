@@ -1,4 +1,4 @@
-import type { QualityProfile, RootFolder, LangProfile, LibraryItem, ArrItem, ArrErrorCode } from './types'
+import type { QualityProfile, RootFolder, LangProfile, LibraryItem, LibraryItemFull, ArrItem, ArrErrorCode } from './types'
 
 export class ArrApiError extends Error {
   code: ArrErrorCode
@@ -48,6 +48,8 @@ export async function getLangProfiles(url: string, key: string): Promise<LangPro
   catch { return [] }
 }
 
+type ArrImage = { coverType: string; remoteUrl?: string }
+
 export async function getMovieLibrary(url: string, key: string): Promise<LibraryItem[]> {
   const items = await arrFetch(url, key, '/api/v3/movie') as Array<{ id: number; title: string; year: number; tmdbId: number }>
   return items.map(m => ({ id: m.id, title: m.title, year: m.year, tmdbId: m.tmdbId }))
@@ -56,6 +58,48 @@ export async function getMovieLibrary(url: string, key: string): Promise<Library
 export async function getSeriesLibrary(url: string, key: string): Promise<LibraryItem[]> {
   const items = await arrFetch(url, key, '/api/v3/series') as Array<{ id: number; title: string; year: number; tvdbId: number }>
   return items.map(s => ({ id: s.id, title: s.title, year: s.year, tvdbId: s.tvdbId }))
+}
+
+type RawMovie = {
+  id: number; title: string; year: number; tmdbId?: number
+  monitored: boolean; hasFile: boolean; qualityProfileId: number
+  sizeOnDisk: number; added: string; status?: string
+  images?: ArrImage[]
+}
+
+type RawSeries = {
+  id: number; title: string; year: number; tvdbId?: number
+  monitored: boolean; qualityProfileId: number
+  added: string; status?: string; images?: ArrImage[]
+  statistics?: { episodeFileCount?: number; sizeOnDisk?: number }
+}
+
+export async function getMovieLibraryFull(url: string, key: string): Promise<Omit<LibraryItemFull, 'qualityProfileName' | 'assignedRules'>[]> {
+  const items = await arrFetch(url, key, '/api/v3/movie') as RawMovie[]
+  return items.map(m => ({
+    id: m.id, title: m.title, year: m.year, tmdbId: m.tmdbId,
+    monitored: m.monitored,
+    hasFile: m.hasFile,
+    qualityProfileId: m.qualityProfileId,
+    sizeOnDisk: m.sizeOnDisk ?? 0,
+    addedDate: m.added ?? '',
+    arrStatus: m.status,
+    posterUrl: m.images?.find(i => i.coverType === 'poster')?.remoteUrl,
+  }))
+}
+
+export async function getSeriesLibraryFull(url: string, key: string): Promise<Omit<LibraryItemFull, 'qualityProfileName' | 'assignedRules'>[]> {
+  const items = await arrFetch(url, key, '/api/v3/series') as RawSeries[]
+  return items.map(s => ({
+    id: s.id, title: s.title, year: s.year, tvdbId: s.tvdbId,
+    monitored: s.monitored,
+    hasFile: (s.statistics?.episodeFileCount ?? 0) > 0,
+    qualityProfileId: s.qualityProfileId,
+    sizeOnDisk: s.statistics?.sizeOnDisk ?? 0,
+    addedDate: s.added ?? '',
+    arrStatus: s.status,
+    posterUrl: s.images?.find(i => i.coverType === 'poster')?.remoteUrl,
+  }))
 }
 
 function posterFrom(item: { remotePoster?: string; images?: Array<{ coverType: string; remoteUrl: string }> }) {
@@ -98,18 +142,16 @@ export async function deleteSeries(url: string, key: string, id: number, deleteF
 }
 
 export async function unmonitorMovie(url: string, key: string, id: number): Promise<void> {
-  const movie = await arrFetch(url, key, `/api/v3/movie/${id}`) as Record<string, unknown>
-  await arrFetch(url, key, `/api/v3/movie/${id}`, {
+  await arrFetch(url, key, '/api/v3/movie/editor', {
     method: 'PUT',
-    body: JSON.stringify({ ...movie, monitored: false }),
+    body: JSON.stringify({ movieIds: [id], monitored: false }),
   })
 }
 
 export async function unmonitorSeries(url: string, key: string, id: number): Promise<void> {
-  const series = await arrFetch(url, key, `/api/v3/series/${id}`) as Record<string, unknown>
-  await arrFetch(url, key, `/api/v3/series/${id}`, {
+  await arrFetch(url, key, '/api/v3/series/editor', {
     method: 'PUT',
-    body: JSON.stringify({ ...series, monitored: false }),
+    body: JSON.stringify({ seriesIds: [id], monitored: false }),
   })
 }
 

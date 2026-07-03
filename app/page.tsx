@@ -1,5 +1,6 @@
 'use client'
 import { useState, useCallback, useEffect } from 'react'
+import Link from 'next/link'
 import { useSettings } from '@/hooks/useSettings'
 import { useSession } from '@/hooks/useSession'
 import { useLookup } from '@/hooks/useLookup'
@@ -43,12 +44,14 @@ export default function Page() {
 
   const manageHook = useManage()
   const [manageRows, setManageRows] = useState<ManageRow[]>([])
+  const [selectedManageIds, setSelectedManageIds] = useState<Set<string>>(new Set())
   const [deleteFiles, setDeleteFiles] = useState(false)
   const [manageInput, setManageInput] = useState('')
 
   useEffect(() => {
     if (activeMode === 'manage') {
       setManageRows([])
+      setSelectedManageIds(new Set())
       manageHook.clearSummary()
     }
   }, [activeTarget])
@@ -81,30 +84,50 @@ export default function Page() {
   }, [session])
 
   // ── Manage mode handlers ─────────────────────────────────────────────────
-  const handleManageLookup = useCallback(() => {
+  const handleManageLookup = useCallback(async () => {
     manageHook.clearSummary()
-    const rows = manageHook.match(manageInput, activeTarget, settingsHook.cache)
+    const rows = await manageHook.lookup(manageInput, activeTarget)
     setManageRows(rows)
+    setSelectedManageIds(new Set(rows.filter(r => r.status === 'matched').map(r => r.id)))
     if (rows.length > 0 && rows.every(r => r.status === 'no_match')) {
       addToast('No library matches found', 'error')
     }
-  }, [manageInput, activeTarget, settingsHook.cache, manageHook, addToast])
+  }, [manageInput, activeTarget, manageHook, addToast])
 
-  const handleManageSubmit = useCallback(async () => {
+  const handleManageSubmit = useCallback(async (action: 'remove' | 'unmonitor') => {
     const updateRow = (id: string, patch: Partial<ManageRow>) => {
       setManageRows(prev => prev.map(r => r.id === id ? { ...r, ...patch } : r))
     }
-    const s = await manageHook.submit(manageRows, activeTarget, deleteFiles, updateRow)
+    const rowsToSubmit = manageRows
+      .filter(r => selectedManageIds.has(r.id) && r.status === 'matched')
+      .map(r => ({ ...r, action }))
+    const s = await manageHook.submit(rowsToSubmit, activeTarget, deleteFiles, updateRow)
     addToast(`Done — ${s.done} applied · ${s.failed} failed`, s.failed > 0 ? 'error' : 'success')
-  }, [manageRows, activeTarget, deleteFiles, manageHook, addToast])
+  }, [manageRows, selectedManageIds, activeTarget, deleteFiles, manageHook, addToast])
 
   const handleManageDeleteRow = useCallback((id: string) => {
     setManageRows(prev => prev.filter(r => r.id !== id))
+    setSelectedManageIds(prev => { const next = new Set(prev); next.delete(id); return next })
   }, [])
 
   const handleManageUpdateRow = useCallback((id: string, patch: Partial<ManageRow>) => {
     setManageRows(prev => prev.map(r => r.id === id ? { ...r, ...patch } : r))
   }, [])
+
+  const handleToggleManageSelect = useCallback((id: string) => {
+    setSelectedManageIds(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }, [])
+
+  const handleSelectAllManage = useCallback(() => {
+    const matchedIds = manageRows.filter(r => r.status === 'matched').map(r => r.id)
+    const allSelected = matchedIds.length > 0 && matchedIds.every(id => selectedManageIds.has(id))
+    setSelectedManageIds(allSelected ? new Set() : new Set(matchedIds))
+  }, [manageRows, selectedManageIds])
 
   // ── Shared ───────────────────────────────────────────────────────────────
   const noMatchEntries = [
@@ -127,8 +150,7 @@ export default function Page() {
 
   const tmdbConfigured = !!settingsHook.settings.tmdbApiKey
   const includedMatchedCount = session.rows.filter(r => r.included && (r.status === 'matched' || r.status === 'in_library')).length
-  const manageEligibleCount = manageRows.filter(r => r.status === 'matched').length
-  const hasRemoveRows = manageRows.some(r => r.status === 'matched' && r.action === 'remove')
+  const manageEligibleCount = manageRows.filter(r => r.status === 'matched' && selectedManageIds.has(r.id)).length
 
   const needsSetup = !settingsHook.loading && !setupDone &&
     !settingsHook.settings.radarr && !settingsHook.settings.sonarr
@@ -168,6 +190,12 @@ export default function Page() {
           <button onClick={() => setHistoryOpen(true)} className="text-slate-400 hover:text-slate-100 transition-colors text-sm" title="History">
             History
           </button>
+          <Link
+            href="/library"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded bg-slate-700 hover:bg-slate-600 text-slate-300 transition-colors"
+          >
+            Library
+          </Link>
           <button
             onClick={() => setRulesOpen(true)}
             className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded bg-slate-700 hover:bg-slate-600 text-slate-300"
@@ -230,15 +258,17 @@ export default function Page() {
           value={currentInput}
           onChange={handleInputChange}
           onLookup={handleLookupAction}
-          running={lookupRunning}
+          running={isManage ? manageHook.looking : lookupRunning}
         />
 
         {isManage ? (
           <ManageTable
             rows={manageRows}
+            selectedIds={selectedManageIds}
+            onToggleSelect={handleToggleManageSelect}
+            onSelectAll={handleSelectAllManage}
             onUpdateRow={handleManageUpdateRow}
             onDeleteRow={handleManageDeleteRow}
-            onToggleAll={() => {}}
           />
         ) : (
           <ReviewTable
@@ -257,7 +287,7 @@ export default function Page() {
       {/* Submit bar */}
       {isManage ? (
         manageRows.length > 0 && (
-          <footer className="shrink-0 bg-slate-800 border-t border-slate-700">
+          <footer className="sticky bottom-0 z-20 bg-slate-800 border-t border-slate-700">
             {manageHook.progress && (
               <div className="px-4 pt-2 space-y-1">
                 <div className="flex justify-between text-xs text-slate-500">
@@ -272,27 +302,37 @@ export default function Page() {
                 </div>
               </div>
             )}
-            <div className="px-4 py-3 flex items-center gap-4">
+            <div className="px-4 py-3 flex items-center gap-3 flex-wrap">
+              <span className="text-xs text-slate-500 shrink-0">
+                {manageEligibleCount} selected
+              </span>
               <button
-                onClick={handleManageSubmit}
+                onClick={() => handleManageSubmit('remove')}
                 disabled={manageHook.submitting || manageEligibleCount === 0}
-                className="flex items-center gap-2 rounded bg-orange-600 hover:bg-orange-500 disabled:opacity-40 disabled:cursor-not-allowed px-5 py-2 font-medium text-sm transition-colors"
+                className="flex items-center gap-2 rounded bg-red-700 hover:bg-red-600 disabled:opacity-40 disabled:cursor-not-allowed px-4 py-1.5 font-medium text-sm transition-colors"
               >
-                {manageHook.submitting && <Spinner className="w-4 h-4" />}
-                {manageHook.submitting ? 'Applying…' : `Apply to Selected (${manageEligibleCount})`}
+                {manageHook.submitting && <Spinner className="w-3.5 h-3.5" />}
+                Remove selected
               </button>
-              <label className={`flex items-center gap-1.5 text-xs cursor-pointer ${hasRemoveRows ? 'text-slate-300' : 'text-slate-600 cursor-not-allowed'}`}>
+              <button
+                onClick={() => handleManageSubmit('unmonitor')}
+                disabled={manageHook.submitting || manageEligibleCount === 0}
+                className="flex items-center gap-2 rounded bg-slate-600 hover:bg-slate-500 disabled:opacity-40 disabled:cursor-not-allowed px-4 py-1.5 font-medium text-sm transition-colors"
+              >
+                Unmonitor selected
+              </button>
+              <label className={`flex items-center gap-1.5 text-xs cursor-pointer ml-1 ${manageEligibleCount > 0 ? 'text-slate-300' : 'text-slate-600 cursor-not-allowed'}`}>
                 <input
                   type="checkbox"
                   checked={deleteFiles}
-                  disabled={!hasRemoveRows}
+                  disabled={manageEligibleCount === 0}
                   onChange={e => setDeleteFiles(e.target.checked)}
                   className="accent-orange-500 disabled:opacity-30"
                 />
                 Delete files
               </label>
               {manageHook.summary && (
-                <span className="text-sm text-slate-400">
+                <span className="text-sm text-slate-400 ml-1">
                   {manageHook.summary.done} applied · {manageHook.summary.failed} failed
                 </span>
               )}
@@ -301,7 +341,7 @@ export default function Page() {
         )
       ) : (
         session.rows.length > 0 && (
-          <footer className="shrink-0 bg-slate-800 border-t border-slate-700">
+          <footer className="sticky bottom-0 z-20 bg-slate-800 border-t border-slate-700">
             {submitProgress && (
               <div className="px-4 pt-2 space-y-1">
                 <div className="flex justify-between text-xs text-slate-500">

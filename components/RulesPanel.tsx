@@ -1,6 +1,6 @@
 'use client'
-import { useState, useEffect, useCallback } from 'react'
-import type { AutoDeleteRule, DeletionQueueItem, DeletionQueueStatus } from '@/lib/types'
+import { useState, useEffect, useCallback, useRef } from 'react'
+import type { AutoDeleteRule, DeletionQueueItem, DeletionQueueStatus, LibraryItem } from '@/lib/types'
 
 const DELAY_UNITS = ['days', 'weeks', 'months', 'year'] as const
 
@@ -54,6 +54,61 @@ export function RulesPanel() {
   const [formError, setFormError] = useState<string | null>(null)
   const [triggering, setTriggering] = useState(false)
   const [evaluating, setEvaluating] = useState(false)
+
+  // Specific-scope library search
+  const [scopeSearch, setScopeSearch] = useState('')
+  const [scopeResults, setScopeResults] = useState<LibraryItem[]>([])
+  const [scopeOpen, setScopeOpen] = useState(false)
+  const scopeSearchTimer = useRef<ReturnType<typeof setTimeout>>()
+  const scopeWrapperRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const handleClick = (e: MouseEvent) => {
+      if (scopeWrapperRef.current && !scopeWrapperRef.current.contains(e.target as Node)) {
+        setScopeOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [])
+
+  const searchScopeLibrary = useCallback((q: string, mediaType: 'movie' | 'series' | undefined) => {
+    clearTimeout(scopeSearchTimer.current)
+    if (!mediaType) return
+    const target = mediaType === 'movie' ? 'movies' : 'series'
+    scopeSearchTimer.current = setTimeout(async () => {
+      const res = await fetch(`/api/library/search?target=${target}&q=${encodeURIComponent(q)}`)
+      if (res.ok) {
+        const d = await res.json() as { results: LibraryItem[] }
+        setScopeResults(d.results ?? [])
+        setScopeOpen(true)
+      }
+    }, 150)
+  }, [])
+
+  const handleScopeInputChange = (value: string) => {
+    setScopeSearch(value)
+    if (!value) {
+      setForm(f => ({ ...f, arrId: undefined, arrTarget: undefined, scopeTitle: undefined }))
+      setScopeResults([])
+      setScopeOpen(false)
+    } else {
+      searchScopeLibrary(value, form.mediaType)
+    }
+  }
+
+  const handleScopeSelect = (item: LibraryItem) => {
+    const arrTarget = form.mediaType === 'movie' ? 'movies' : 'series'
+    setForm(f => ({ ...f, arrId: item.id, arrTarget, scopeTitle: item.title }))
+    setScopeSearch(item.title)
+    setScopeOpen(false)
+  }
+
+  const clearScopeSelection = () => {
+    setForm(f => ({ ...f, arrId: undefined, arrTarget: undefined, scopeTitle: undefined }))
+    setScopeSearch('')
+    setScopeResults([])
+  }
 
   const loadRules = useCallback(() => {
     fetch('/api/rules').then(r => r.json()).then(d => setRules(d.rules ?? []))
@@ -110,6 +165,9 @@ export function RulesPanel() {
     setEditingId(rule.id)
     setShowForm(true)
     setFormError(null)
+    setScopeSearch(rule.scopeTitle ?? '')
+    setScopeResults([])
+    setScopeOpen(false)
   }
 
   const handleCancelItem = async (id: string) => {
@@ -152,7 +210,7 @@ export function RulesPanel() {
           <h2 className="text-lg font-semibold text-white">Auto-Delete Rules</h2>
           {!showForm && (
             <button
-              onClick={() => { setForm(BLANK_FORM); setEditingId(null); setShowForm(true); setFormError(null) }}
+              onClick={() => { setForm(BLANK_FORM); setEditingId(null); setShowForm(true); setFormError(null); setScopeSearch(''); setScopeResults([]); setScopeOpen(false) }}
               className="px-3 py-1.5 text-sm bg-indigo-600 hover:bg-indigo-500 text-white rounded"
             >
               + Add Rule
@@ -179,7 +237,10 @@ export function RulesPanel() {
                   value={form.mediaType}
                   onChange={e => {
                     const mt = e.target.value as 'movie' | 'series'
-                    setForm(f => ({ ...f, mediaType: mt, granularity: mt === 'movie' ? 'movie' : 'episode' }))
+                    setForm(f => ({ ...f, mediaType: mt, granularity: mt === 'movie' ? 'movie' : 'episode', arrId: undefined, arrTarget: undefined, scopeTitle: undefined }))
+                    setScopeSearch('')
+                    setScopeResults([])
+                    setScopeOpen(false)
                   }}
                 >
                   <option value="movie">Movie</option>
@@ -246,17 +307,72 @@ export function RulesPanel() {
                   {DELAY_UNITS.map(u => <option key={u} value={u}>{u}</option>)}
                 </select>
               </div>
-              <div>
+              <div className={form.scope === 'specific' ? 'col-span-2' : ''}>
                 <label className="text-xs text-slate-400 block mb-1">Scope</label>
                 <select
                   className="w-full bg-slate-700 text-white text-sm rounded px-3 py-1.5 border border-slate-600"
                   value={form.scope}
-                  onChange={e => setForm(f => ({ ...f, scope: e.target.value as 'global' | 'specific' }))}
+                  onChange={e => {
+                    const scope = e.target.value as 'global' | 'specific'
+                    setForm(f => ({ ...f, scope, arrId: undefined, arrTarget: undefined, scopeTitle: undefined }))
+                    setScopeSearch('')
+                    setScopeResults([])
+                    setScopeOpen(false)
+                  }}
                 >
                   <option value="global">Global</option>
                   <option value="specific">Specific title</option>
                 </select>
               </div>
+              {form.scope === 'specific' && (
+                <div className="col-span-2" ref={scopeWrapperRef}>
+                  <label className="text-xs text-slate-400 block mb-1">
+                    Search library title
+                    {form.arrId != null && (
+                      <span className="ml-2 text-green-400">✓ id:{form.arrId}</span>
+                    )}
+                  </label>
+                  <div className="relative">
+                    <input
+                      className="w-full bg-slate-700 text-white text-sm rounded px-3 py-1.5 border border-slate-600 focus:outline-none focus:border-indigo-500 pr-8"
+                      value={scopeSearch}
+                      onChange={e => handleScopeInputChange(e.target.value)}
+                      onFocus={() => { if (scopeResults.length > 0) setScopeOpen(true) }}
+                      placeholder={`Search ${form.mediaType === 'movie' ? 'movie' : 'series'} library…`}
+                    />
+                    {scopeSearch && (
+                      <button
+                        type="button"
+                        onClick={clearScopeSelection}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white text-sm leading-none"
+                      >
+                        ×
+                      </button>
+                    )}
+                    {scopeOpen && scopeResults.length > 0 && (
+                      <ul className="absolute z-30 w-full mt-1 bg-slate-700 border border-slate-600 rounded shadow-lg max-h-48 overflow-y-auto">
+                        {scopeResults.map(item => (
+                          <li key={item.id}>
+                            <button
+                              type="button"
+                              className="w-full text-left px-3 py-2 text-sm hover:bg-slate-600 text-white flex items-baseline gap-2"
+                              onClick={() => handleScopeSelect(item)}
+                            >
+                              <span className="truncate">{item.title}</span>
+                              {item.year && <span className="text-slate-400 text-xs shrink-0">{item.year}</span>}
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                    {scopeOpen && scopeResults.length === 0 && scopeSearch && (
+                      <div className="absolute z-30 w-full mt-1 bg-slate-700 border border-slate-600 rounded px-3 py-2 text-slate-400 text-sm">
+                        No matches in library cache. Refresh the cache first.
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
             {formError && <p className="text-red-400 text-sm">{formError}</p>}
             <div className="flex gap-2">
@@ -268,7 +384,7 @@ export function RulesPanel() {
                 {saving ? 'Saving…' : editingId ? 'Update' : 'Save'}
               </button>
               <button
-                onClick={() => { setShowForm(false); setEditingId(null); setForm(BLANK_FORM) }}
+                onClick={() => { setShowForm(false); setEditingId(null); setForm(BLANK_FORM); setScopeSearch(''); setScopeResults([]); setScopeOpen(false) }}
                 className="px-4 py-1.5 text-sm bg-slate-600 hover:bg-slate-500 text-white rounded"
               >
                 Cancel

@@ -17,6 +17,7 @@ const DEFAULT_STORE: Store = {
   lastPolledAt: {},
   rules: [],
   deletionQueue: [],
+  posterCache: { movies: {}, series: {} },
 }
 
 function getStorePath(): string {
@@ -51,6 +52,11 @@ export function readStore(): Store {
       const pending = rawQueue.filter(i => i.status === 'pending')
       const terminal = rawQueue.filter(i => i.status !== 'pending')
       store.deletionQueue = [...pending, ...terminal].slice(0, 500)
+    }
+    if (raw.posterCache && typeof raw.posterCache === 'object') {
+      const pc = raw.posterCache as Partial<Store['posterCache']>
+      if (pc.movies && typeof pc.movies === 'object') store.posterCache.movies = pc.movies
+      if (pc.series && typeof pc.series === 'object') store.posterCache.series = pc.series
     }
     return store
   } catch {

@@ -1,22 +1,34 @@
 'use client'
-import { useRef } from 'react'
+import { useRef, useEffect } from 'react'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import type { ManageRow } from '@/lib/types'
 import { ManageRowComponent } from './ManageRow'
 
 interface Props {
   rows: ManageRow[]
+  selectedIds: Set<string>
+  onToggleSelect: (id: string) => void
+  onSelectAll: () => void
   onUpdateRow: (id: string, patch: Partial<ManageRow>) => void
   onDeleteRow: (id: string) => void
-  onToggleAll: (included: boolean) => void
 }
 
 const ROW_HEIGHT = 56
 const VIRTUAL_THRESHOLD = 100
 
-export function ManageTable({ rows, onUpdateRow, onDeleteRow, onToggleAll }: Props) {
+export function ManageTable({ rows, selectedIds, onToggleSelect, onSelectAll, onUpdateRow, onDeleteRow }: Props) {
   const parentRef = useRef<HTMLDivElement>(null)
+  const selectAllRef = useRef<HTMLInputElement>(null)
   const shouldVirtualize = rows.length > VIRTUAL_THRESHOLD
+
+  const matchedRows = rows.filter(r => r.status === 'matched')
+  const selectedMatchedCount = matchedRows.filter(r => selectedIds.has(r.id)).length
+  const allSelected = matchedRows.length > 0 && selectedMatchedCount === matchedRows.length
+  const someSelected = selectedMatchedCount > 0 && !allSelected
+
+  useEffect(() => {
+    if (selectAllRef.current) selectAllRef.current.indeterminate = someSelected
+  }, [someSelected])
 
   const virtualizer = useVirtualizer({
     count: rows.length,
@@ -29,7 +41,15 @@ export function ManageTable({ rows, onUpdateRow, onDeleteRow, onToggleAll }: Pro
 
   const header = (
     <div className="flex items-center gap-2 px-4 py-1.5 bg-slate-900 border-b border-slate-700 text-xs text-slate-500 uppercase tracking-wide sticky top-0 z-10">
-      <span className="shrink-0 w-3.5" />
+      <input
+        ref={selectAllRef}
+        type="checkbox"
+        checked={allSelected}
+        disabled={matchedRows.length === 0}
+        onChange={onSelectAll}
+        className="accent-orange-500 shrink-0 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+        title="Select all matched"
+      />
       <span className="w-36 shrink-0">Input</span>
       <span className="flex-1">Library Match</span>
       <span className="shrink-0">Status / Action</span>
@@ -44,6 +64,8 @@ export function ManageTable({ rows, onUpdateRow, onDeleteRow, onToggleAll }: Pro
           <ManageRowComponent
             key={row.id}
             row={row}
+            selected={selectedIds.has(row.id)}
+            onToggleSelect={() => onToggleSelect(row.id)}
             onUpdate={patch => onUpdateRow(row.id, patch)}
             onDelete={() => onDeleteRow(row.id)}
           />
@@ -61,6 +83,8 @@ export function ManageTable({ rows, onUpdateRow, onDeleteRow, onToggleAll }: Pro
             <ManageRowComponent
               key={rows[vItem.index].id}
               row={rows[vItem.index]}
+              selected={selectedIds.has(rows[vItem.index].id)}
+              onToggleSelect={() => onToggleSelect(rows[vItem.index].id)}
               onUpdate={patch => onUpdateRow(rows[vItem.index].id, patch)}
               onDelete={() => onDeleteRow(rows[vItem.index].id)}
               style={{

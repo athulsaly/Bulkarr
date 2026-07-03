@@ -12,18 +12,18 @@
   },
   "dependencies": {
     "@tanstack/react-virtual": "^3.14.3",
-    "next": "15.5.16",
+    "next": "15.5.19",
     "react": "^18",
     "react-dom": "^18",
     "uuid": "^14.0.1"
   },
   "pnpm": {
-    "shamefullyHoist": true,
     "overrides": {
-      "picomatch": "^4.0.4",
-      "brace-expansion@2": "^2.0.3",
-      "ip-address": "^10.1.1",
-      "tar": "^7.5.16"
+      "postcss": ">=8.5.10",
+      "picomatch": ">=4.0.4",
+      "brace-expansion@2": ">=2.0.3",
+      "ip-address": ">=10.1.1",
+      "tar": ">=7.5.16"
     }
   },
   "devDependencies": {
@@ -36,7 +36,7 @@
     "@types/react-dom": "^18",
     "@types/uuid": "^11.0.0",
     "eslint": "^8",
-    "eslint-config-next": "15.5.16",
+    "eslint-config-next": "15.5.19",
     "jest": "^30.4.2",
     "jest-environment-jsdom": "^30.4.1",
     "postcss": "^8.5.10",

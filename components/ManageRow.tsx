@@ -5,6 +5,8 @@ import type { ArrItem } from '@/lib/types'
 
 interface Props {
   row: IManageRow
+  selected: boolean
+  onToggleSelect: () => void
   onUpdate: (patch: Partial<IManageRow>) => void
   onDelete: () => void
   style?: React.CSSProperties
@@ -26,7 +28,7 @@ const STATUS_LABEL: Record<IManageRow['status'], string> = {
   failed:   'Failed',
 }
 
-export function ManageRowComponent({ row, onUpdate, onDelete, style }: Props) {
+export function ManageRowComponent({ row, selected, onToggleSelect, onUpdate, onDelete, style }: Props) {
   const match = row.libraryMatches[row.selectedIndex]
   const candidatesAsArrItems = row.libraryMatches as unknown as ArrItem[]
 
@@ -34,10 +36,10 @@ export function ManageRowComponent({ row, onUpdate, onDelete, style }: Props) {
     <div style={style} className="flex items-center gap-2 px-4 py-2 border-b border-slate-800 hover:bg-slate-800/50 text-sm">
       <input
         type="checkbox"
-        checked={row.status === 'matched'}
+        checked={selected}
         disabled={row.status !== 'matched'}
-        readOnly
-        className="accent-orange-500 shrink-0 disabled:opacity-30 disabled:cursor-not-allowed"
+        onChange={onToggleSelect}
+        className="accent-orange-500 shrink-0 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
       />
 
       <span className="w-36 shrink-0 truncate text-slate-300 text-xs" title={row.inputText}>

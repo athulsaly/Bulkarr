@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { readStore } from '@/lib/store'
+import { readStore, updateStore } from '@/lib/store'
 import { deleteMovie, deleteSeries, unmonitorMovie, unmonitorSeries, ArrApiError } from '@/lib/arr-client'
 import { throttledBatch } from '@/lib/throttle'
 import type { ManageRow, ManageResult } from '@/lib/types'
@@ -22,6 +22,8 @@ export async function POST(req: NextRequest) {
     )
   }
 
+  const deletedArrIds: number[] = []
+
   const results = await throttledBatch<ManageRow, ManageResult>(
     rows,
     async row => {
@@ -33,6 +35,7 @@ export async function POST(req: NextRequest) {
           } else {
             await deleteSeries(config.url, config.apiKey, match.id, deleteFiles)
           }
+          deletedArrIds.push(match.id)
         } else if (row.action === 'unmonitor') {
           if (target === 'movies') {
             await unmonitorMovie(config.url, config.apiKey, match.id)
@@ -52,6 +55,13 @@ export async function POST(req: NextRequest) {
     },
     { concurrency: 3, delayMs: 300 }
   )
+
+  if (deletedArrIds.length > 0) {
+    updateStore(s => {
+      const bucket = target === 'movies' ? s.posterCache.movies : s.posterCache.series
+      for (const id of deletedArrIds) delete bucket[id]
+    })
+  }
 
   return NextResponse.json({ results })
 }
