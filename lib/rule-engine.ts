@@ -37,25 +37,19 @@ export function evaluateRules(
 
   const eventMediaType = event.mediaType === 'movie' ? 'movie' : 'series'
 
-  // Filter to enabled rules matching this event's mediaType
-  const candidates = rules.filter(r => r.enabled && r.mediaType === eventMediaType)
-
-  // Collect all unique granularities referenced by candidates
-  const granularities = [...new Set(candidates.map(r => r.granularity))]
+  // Rules that are enabled, match mediaType, and have this arrId in their targets
+  const applicable = rules.filter(r =>
+    r.enabled &&
+    r.mediaType === eventMediaType &&
+    r.targets.some(t => t.arrId === event.arrId),
+  )
 
   const items: DeletionQueueItem[] = []
 
-  for (const granularity of granularities) {
-    const matching = candidates.filter(r => r.granularity === granularity)
-
-    // Pick most specific rule: specific scope for this arrId > global
-    const specific = matching.find(r => r.scope === 'specific' && r.arrId === event.arrId)
-    const globalRule = matching.find(r => r.scope === 'global')
-    const rule = specific ?? globalRule
-    if (!rule) continue
+  for (const rule of applicable) {
+    const { granularity } = rule
 
     if (granularity === 'movie' || granularity === 'episode') {
-      // Check dedup
       if (isDupInQueue(existingQueue, rule.id, event.arrId, event.seasonNumber, event.episodeNumber)) continue
 
       const scheduledAt = event.watchedAt + delayToMs(rule.delayAmount, rule.delayUnit)
@@ -78,13 +72,9 @@ export function evaluateRules(
         retryCount: 0,
       })
     } else if (granularity === 'season') {
-      // Only for episode events
       if (event.mediaType !== 'episode' || event.seasonNumber == null) continue
-
-      // Dedup: skip if non-cancelled item exists for ruleId+arrId+seasonNumber
       if (isDupInQueue(existingQueue, rule.id, event.arrId, event.seasonNumber, undefined)) continue
 
-      // scheduledAt = max watchedAt across all matched watched events for this series+season + delay
       const seasonEvents = watchedEvents.filter(e =>
         e.arrId === event.arrId &&
         e.seasonNumber === event.seasonNumber &&

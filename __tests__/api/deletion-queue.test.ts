@@ -131,7 +131,7 @@ test('trigger runs executor cycle and returns counts', async () => {
 test('evaluate enqueues matches for matched events', async () => {
   const movieRule: import('@/lib/types').AutoDeleteRule = {
     id: 'r1', name: 'n', enabled: true, mediaType: 'movie', granularity: 'movie',
-    action: 'delete', deleteFiles: true, delayAmount: 7, delayUnit: 'days', scope: 'global',
+    action: 'delete', deleteFiles: true, delayAmount: 7, delayUnit: 'days', targets: [{ arrId: 10, arrTarget: 'movies' as const }],
   }
   mockStore.rules = [movieRule]
   mockStore.watchedEvents = [matchedEvent]

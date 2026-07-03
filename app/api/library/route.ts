@@ -46,8 +46,8 @@ export async function GET(req: NextRequest) {
       posterUrl: item.posterUrl ?? cachedPosters[item.id],
       qualityProfileName: profiles.find(p => p.id === item.qualityProfileId)?.name,
       assignedRules: store.rules.filter(r =>
-        (r.scope === 'global' && r.mediaType === mediaType) ||
-        (r.scope === 'specific' && r.arrId === item.id && r.arrTarget === target)
+        r.mediaType === mediaType &&
+        r.targets.some(t => t.arrId === item.id && t.arrTarget === target)
       ),
     }))
 

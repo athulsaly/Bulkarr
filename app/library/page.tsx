@@ -80,8 +80,8 @@ function applyFilters(items: LibraryItemFull[], f: Filters, search: string): Lib
   if (f.monitored === 'unmonitored') out = out.filter(i => !i.monitored)
   if (f.files === 'has-files') out = out.filter(i => i.hasFile)
   if (f.files === 'missing') out = out.filter(i => !i.hasFile)
-  if (f.rule === 'has-rule') out = out.filter(i => i.assignedRules.some(r => r.scope === 'specific'))
-  if (f.rule === 'no-rule') out = out.filter(i => !i.assignedRules.some(r => r.scope === 'specific'))
+  if (f.rule === 'has-rule') out = out.filter(i => i.assignedRules.length > 0)
+  if (f.rule === 'no-rule') out = out.filter(i => i.assignedRules.length === 0)
   if (f.profile !== 'all') out = out.filter(i => String(i.qualityProfileId) === f.profile)
   if (f.status !== 'all') out = out.filter(i => i.arrStatus === f.status)
   return out
@@ -232,25 +232,20 @@ export default function LibraryPage() {
 
   const handleCreateAndAssign = async () => {
     if (!newRuleForm.name.trim()) { setCreateError('Name is required'); return }
-    const primary = assignTargetItems[0]
-    if (!primary) return
+    if (!assignTargetItems.length) return
     setCreating(true)
     setCreateError(null)
     try {
-      const arrTarget = target
       const payload = {
         name: newRuleForm.name.trim(),
         enabled: true,
-        mediaType: target === 'movies' ? 'movie' : 'series',
+        mediaType: target === 'movies' ? 'movie' : 'series' as 'movie' | 'series',
         granularity: newRuleForm.granularity,
         action: newRuleForm.action,
         deleteFiles: newRuleForm.deleteFiles,
         delayAmount: newRuleForm.delayAmount,
         delayUnit: newRuleForm.delayUnit,
-        scope: 'specific' as const,
-        arrId: primary.id,
-        arrTarget,
-        scopeTitle: primary.title,
+        targets: assignTargetItems.map(i => ({ arrId: i.id, arrTarget: target, scopeTitle: i.title })),
       }
       const res = await fetch('/api/rules', {
         method: 'POST',
@@ -259,21 +254,6 @@ export default function LibraryPage() {
       })
       const d = await res.json() as { rule?: AutoDeleteRule; error?: string }
       if (!res.ok) { setCreateError(d.error ?? 'Failed to create rule'); return }
-
-      // If batch, assign copies to remaining items
-      const remaining = assignTargetItems.slice(1)
-      if (remaining.length > 0 && d.rule) {
-        await fetch('/api/library/assign', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            target,
-            items: remaining.map(i => ({ arrId: i.id, scopeTitle: i.title })),
-            ruleId: d.rule.id,
-          }),
-        })
-      }
-
       showToast(`Rule "${payload.name}" created and assigned to ${assignTargetItems.length} item(s)`)
       setAssignOpen(false)
       await loadLibrary()
@@ -298,7 +278,7 @@ export default function LibraryPage() {
       })
       const d = await res.json()
       if (!res.ok) { showToast(d.error ?? 'Failed to assign'); return }
-      const n = d.created?.length ?? 0
+      const n = d.added ?? 0
       showToast(n > 0 ? `Rule assigned to ${n} item(s)` : 'Already assigned to all selected')
       setAssignOpen(false)
       await loadLibrary()
@@ -308,11 +288,15 @@ export default function LibraryPage() {
     }
   }
 
-  const handleUnassign = async (ruleId: string) => {
-    await fetch(`/api/rules/${ruleId}`, { method: 'DELETE' })
+  const handleUnassign = async (ruleId: string, arrId: number) => {
+    await fetch('/api/library/assign', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ruleId, arrId, arrTarget: target }),
+    })
     await loadLibrary()
     await loadRules()
-    showToast('Rule removed')
+    showToast('Rule removed from this title')
   }
 
   const setFilter = <K extends keyof Filters>(key: K, val: Filters[K]) => {
@@ -589,23 +573,17 @@ export default function LibraryPage() {
                         {item.assignedRules.map(r => (
                           <span
                             key={r.id}
-                            className={`inline-flex items-center gap-0.5 text-xs px-1.5 py-0.5 rounded ${
-                              r.scope === 'global'
-                                ? 'bg-slate-700 text-slate-300'
-                                : 'bg-indigo-950 text-indigo-300 border border-indigo-800'
-                            }`}
-                            title={`${r.scope === 'global' ? 'Global' : 'Specific'} · ${r.action} after ${delayLabel(r)}`}
+                            className="inline-flex items-center gap-0.5 text-xs px-1.5 py-0.5 rounded bg-indigo-950 text-indigo-300 border border-indigo-800"
+                            title={`${r.action} after ${delayLabel(r)}`}
                           >
                             {r.name}
-                            {r.scope === 'specific' && (
-                              <button
-                                onClick={() => handleUnassign(r.id)}
-                                className="text-indigo-500 hover:text-red-400 leading-none ml-0.5"
-                                title="Remove"
-                              >
-                                ×
-                              </button>
-                            )}
+                            <button
+                              onClick={() => handleUnassign(r.id, item.id)}
+                              className="text-indigo-500 hover:text-red-400 leading-none ml-0.5"
+                              title="Remove"
+                            >
+                              ×
+                            </button>
                           </span>
                         ))}
                       </div>
@@ -746,7 +724,7 @@ export default function LibraryPage() {
                             <span className="text-slate-400 text-xs">
                               {r.action === 'delete' ? 'Delete' : 'Unmonitor'} after {delayLabel(r)}
                               {r.deleteFiles && r.action === 'delete' ? ' · with files' : ''}
-                              {' · '}{r.scope}
+                              {' · '}{r.targets.length === 0 ? 'No titles yet' : `${r.targets.length} title(s)`}
                             </span>
                           </div>
                         </label>
@@ -759,7 +737,7 @@ export default function LibraryPage() {
               {modalMode === 'create' && (
                 <div className="space-y-3">
                   <p className="text-xs text-slate-500">
-                    Creates a <span className="text-indigo-400">specific</span> rule — applies only to{' '}
+                    Creates a rule and assigns it to{' '}
                     {assignTargetItems.length === 1
                       ? <span className="text-slate-300">{assignTargetItems[0].title}</span>
                       : <span className="text-slate-300">{assignTargetItems.length} selected titles</span>

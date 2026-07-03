@@ -29,10 +29,7 @@ export async function POST(req: NextRequest) {
     deleteFiles: body.deleteFiles ?? false,
     delayAmount: body.delayAmount!,
     delayUnit: body.delayUnit!,
-    scope: body.scope!,
-    arrId: body.arrId,
-    arrTarget: body.arrTarget,
-    scopeTitle: body.scopeTitle,
+    targets: body.targets ?? [],
   }
 
   updateStore(s => { s.rules.push(rule) })

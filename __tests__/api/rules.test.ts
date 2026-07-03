@@ -46,7 +46,7 @@ const validRule = {
   deleteFiles: true,
   delayAmount: 7,
   delayUnit: 'days',
-  scope: 'global',
+  targets: [],
 }
 
 // --- GET /api/rules ---
@@ -87,8 +87,13 @@ test('POST returns 400 when delayUnit is invalid', async () => {
   expect(res.status).toBe(400)
 })
 
-test('POST returns 400 when scope=specific missing arrId', async () => {
-  const res = await POST(makeReq({ ...validRule, scope: 'specific' }))
+test('POST returns 400 when targets item is missing arrId', async () => {
+  const res = await POST(makeReq({ ...validRule, targets: [{ arrTarget: 'movies' }] }))
+  expect(res.status).toBe(400)
+})
+
+test('POST returns 400 when targets is not an array', async () => {
+  const res = await POST(makeReq({ ...validRule, targets: 'all' }))
   expect(res.status).toBe(400)
 })
 

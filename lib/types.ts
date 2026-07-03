@@ -120,6 +120,12 @@ export interface HistoryItem {
   addedAt: number
 }
 
+export interface RuleTarget {
+  arrId: number
+  arrTarget: 'movies' | 'series'
+  scopeTitle?: string
+}
+
 export interface AutoDeleteRule {
   id: string
   name: string
@@ -130,10 +136,7 @@ export interface AutoDeleteRule {
   deleteFiles: boolean
   delayAmount: number
   delayUnit: 'days' | 'weeks' | 'months' | 'year'
-  scope: 'global' | 'specific'
-  arrId?: number
-  arrTarget?: 'movies' | 'series'
-  scopeTitle?: string
+  targets: RuleTarget[]
 }
 
 export type DeletionQueueStatus = 'pending' | 'done' | 'failed' | 'cancelled'

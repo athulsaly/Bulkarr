@@ -17,13 +17,10 @@ interface Props {
   selected: boolean
   onToggleSelect: () => void
   onAssign: () => void
-  onUnassign: (ruleId: string) => void
+  onUnassign: (ruleId: string, arrId: number) => void
 }
 
 export function LibraryCard({ item, selected, onToggleSelect, onAssign, onUnassign }: Props) {
-  const specificRules = item.assignedRules.filter(r => r.scope === 'specific')
-  const globalRules = item.assignedRules.filter(r => r.scope === 'global')
-
   return (
     <div
       className={`flex flex-col rounded-lg bg-slate-800 overflow-hidden border transition-colors ${
@@ -48,7 +45,6 @@ export function LibraryCard({ item, selected, onToggleSelect, onAssign, onUnassi
           </div>
         )}
 
-        {/* Checkbox */}
         <label className="absolute top-2 left-2 cursor-pointer">
           <input
             type="checkbox"
@@ -58,7 +54,6 @@ export function LibraryCard({ item, selected, onToggleSelect, onAssign, onUnassi
           />
         </label>
 
-        {/* Monitored badge */}
         <span
           className={`absolute top-2 right-2 w-2.5 h-2.5 rounded-full border border-slate-900/50 ${
             item.monitored ? 'bg-green-400' : 'bg-slate-500'
@@ -66,14 +61,12 @@ export function LibraryCard({ item, selected, onToggleSelect, onAssign, onUnassi
           title={item.monitored ? 'Monitored' : 'Unmonitored'}
         />
 
-        {/* Missing files indicator */}
         {!item.hasFile && (
           <span className="absolute bottom-2 left-2 text-xs bg-yellow-800/90 text-yellow-200 px-1.5 py-0.5 rounded">
             Missing
           </span>
         )}
 
-        {/* Size */}
         {item.sizeOnDisk > 0 && (
           <span className="absolute bottom-2 right-2 text-xs bg-slate-900/80 text-slate-300 px-1.5 py-0.5 rounded">
             {formatSize(item.sizeOnDisk)}
@@ -96,27 +89,18 @@ export function LibraryCard({ item, selected, onToggleSelect, onAssign, onUnassi
           )}
         </div>
 
-        {/* Rules */}
+        {/* Assigned rules */}
         {item.assignedRules.length > 0 && (
           <div className="flex flex-wrap gap-1">
-            {globalRules.map(r => (
-              <span
-                key={r.id}
-                className="text-xs px-1.5 py-0.5 rounded bg-slate-700 text-slate-300"
-                title={`Global · ${r.action} after ${delayLabel(r)}`}
-              >
-                {r.name}
-              </span>
-            ))}
-            {specificRules.map(r => (
+            {item.assignedRules.map(r => (
               <span
                 key={r.id}
                 className="inline-flex items-center gap-0.5 text-xs px-1.5 py-0.5 rounded bg-indigo-950 text-indigo-300 border border-indigo-800"
-                title={`Specific · ${r.action} after ${delayLabel(r)}`}
+                title={`${r.action} after ${delayLabel(r)}`}
               >
                 {r.name}
                 <button
-                  onClick={() => onUnassign(r.id)}
+                  onClick={() => onUnassign(r.id, item.id)}
                   className="text-indigo-500 hover:text-red-400 leading-none"
                 >
                   ×

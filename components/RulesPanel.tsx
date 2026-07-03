@@ -1,6 +1,6 @@
 'use client'
-import { useState, useEffect, useCallback, useRef } from 'react'
-import type { AutoDeleteRule, DeletionQueueItem, DeletionQueueStatus, LibraryItem } from '@/lib/types'
+import { useState, useEffect, useCallback } from 'react'
+import type { AutoDeleteRule, DeletionQueueItem, DeletionQueueStatus } from '@/lib/types'
 
 const DELAY_UNITS = ['days', 'weeks', 'months', 'year'] as const
 
@@ -13,7 +13,7 @@ const BLANK_FORM: Partial<AutoDeleteRule> = {
   deleteFiles: true,
   delayAmount: 7,
   delayUnit: 'days',
-  scope: 'global',
+  targets: [],
 }
 
 const STATUS_CHIP: Record<DeletionQueueStatus, string> = {
@@ -25,6 +25,12 @@ const STATUS_CHIP: Record<DeletionQueueStatus, string> = {
 
 function delayLabel(r: AutoDeleteRule): string {
   return r.delayUnit === 'year' ? '1 year' : `${r.delayAmount} ${r.delayUnit}`
+}
+
+function targetsLabel(r: AutoDeleteRule): string {
+  if (r.targets.length === 0) return 'No titles assigned'
+  if (r.targets.length === 1) return r.targets[0].scopeTitle ?? `id:${r.targets[0].arrId}`
+  return `${r.targets.length} titles`
 }
 
 function formatScheduled(ts: number): string {
@@ -54,61 +60,6 @@ export function RulesPanel() {
   const [formError, setFormError] = useState<string | null>(null)
   const [triggering, setTriggering] = useState(false)
   const [evaluating, setEvaluating] = useState(false)
-
-  // Specific-scope library search
-  const [scopeSearch, setScopeSearch] = useState('')
-  const [scopeResults, setScopeResults] = useState<LibraryItem[]>([])
-  const [scopeOpen, setScopeOpen] = useState(false)
-  const scopeSearchTimer = useRef<ReturnType<typeof setTimeout>>()
-  const scopeWrapperRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    const handleClick = (e: MouseEvent) => {
-      if (scopeWrapperRef.current && !scopeWrapperRef.current.contains(e.target as Node)) {
-        setScopeOpen(false)
-      }
-    }
-    document.addEventListener('mousedown', handleClick)
-    return () => document.removeEventListener('mousedown', handleClick)
-  }, [])
-
-  const searchScopeLibrary = useCallback((q: string, mediaType: 'movie' | 'series' | undefined) => {
-    clearTimeout(scopeSearchTimer.current)
-    if (!mediaType) return
-    const target = mediaType === 'movie' ? 'movies' : 'series'
-    scopeSearchTimer.current = setTimeout(async () => {
-      const res = await fetch(`/api/library/search?target=${target}&q=${encodeURIComponent(q)}`)
-      if (res.ok) {
-        const d = await res.json() as { results: LibraryItem[] }
-        setScopeResults(d.results ?? [])
-        setScopeOpen(true)
-      }
-    }, 150)
-  }, [])
-
-  const handleScopeInputChange = (value: string) => {
-    setScopeSearch(value)
-    if (!value) {
-      setForm(f => ({ ...f, arrId: undefined, arrTarget: undefined, scopeTitle: undefined }))
-      setScopeResults([])
-      setScopeOpen(false)
-    } else {
-      searchScopeLibrary(value, form.mediaType)
-    }
-  }
-
-  const handleScopeSelect = (item: LibraryItem) => {
-    const arrTarget = form.mediaType === 'movie' ? 'movies' : 'series'
-    setForm(f => ({ ...f, arrId: item.id, arrTarget, scopeTitle: item.title }))
-    setScopeSearch(item.title)
-    setScopeOpen(false)
-  }
-
-  const clearScopeSelection = () => {
-    setForm(f => ({ ...f, arrId: undefined, arrTarget: undefined, scopeTitle: undefined }))
-    setScopeSearch('')
-    setScopeResults([])
-  }
 
   const loadRules = useCallback(() => {
     fetch('/api/rules').then(r => r.json()).then(d => setRules(d.rules ?? []))
@@ -165,9 +116,6 @@ export function RulesPanel() {
     setEditingId(rule.id)
     setShowForm(true)
     setFormError(null)
-    setScopeSearch(rule.scopeTitle ?? '')
-    setScopeResults([])
-    setScopeOpen(false)
   }
 
   const handleCancelItem = async (id: string) => {
@@ -210,7 +158,7 @@ export function RulesPanel() {
           <h2 className="text-lg font-semibold text-white">Auto-Delete Rules</h2>
           {!showForm && (
             <button
-              onClick={() => { setForm(BLANK_FORM); setEditingId(null); setShowForm(true); setFormError(null); setScopeSearch(''); setScopeResults([]); setScopeOpen(false) }}
+              onClick={() => { setForm(BLANK_FORM); setEditingId(null); setShowForm(true); setFormError(null) }}
               className="px-3 py-1.5 text-sm bg-indigo-600 hover:bg-indigo-500 text-white rounded"
             >
               + Add Rule
@@ -220,6 +168,9 @@ export function RulesPanel() {
 
         {showForm && (
           <div className="bg-slate-800 rounded-lg p-4 mb-4 space-y-3">
+            <p className="text-xs text-slate-500">
+              Define the rule settings. Assign it to specific titles from the Library page.
+            </p>
             <div className="grid grid-cols-2 gap-3">
               <div className="col-span-2">
                 <label className="text-xs text-slate-400 block mb-1">Name</label>
@@ -227,7 +178,7 @@ export function RulesPanel() {
                   className="w-full bg-slate-700 text-white text-sm rounded px-3 py-1.5 border border-slate-600 focus:outline-none focus:border-indigo-500"
                   value={form.name ?? ''}
                   onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-                  placeholder="Rule name"
+                  placeholder="e.g. Delete after watching"
                 />
               </div>
               <div>
@@ -237,10 +188,7 @@ export function RulesPanel() {
                   value={form.mediaType}
                   onChange={e => {
                     const mt = e.target.value as 'movie' | 'series'
-                    setForm(f => ({ ...f, mediaType: mt, granularity: mt === 'movie' ? 'movie' : 'episode', arrId: undefined, arrTarget: undefined, scopeTitle: undefined }))
-                    setScopeSearch('')
-                    setScopeResults([])
-                    setScopeOpen(false)
+                    setForm(f => ({ ...f, mediaType: mt, granularity: mt === 'movie' ? 'movie' : 'episode' }))
                   }}
                 >
                   <option value="movie">Movie</option>
@@ -307,72 +255,6 @@ export function RulesPanel() {
                   {DELAY_UNITS.map(u => <option key={u} value={u}>{u}</option>)}
                 </select>
               </div>
-              <div className={form.scope === 'specific' ? 'col-span-2' : ''}>
-                <label className="text-xs text-slate-400 block mb-1">Scope</label>
-                <select
-                  className="w-full bg-slate-700 text-white text-sm rounded px-3 py-1.5 border border-slate-600"
-                  value={form.scope}
-                  onChange={e => {
-                    const scope = e.target.value as 'global' | 'specific'
-                    setForm(f => ({ ...f, scope, arrId: undefined, arrTarget: undefined, scopeTitle: undefined }))
-                    setScopeSearch('')
-                    setScopeResults([])
-                    setScopeOpen(false)
-                  }}
-                >
-                  <option value="global">Global</option>
-                  <option value="specific">Specific title</option>
-                </select>
-              </div>
-              {form.scope === 'specific' && (
-                <div className="col-span-2" ref={scopeWrapperRef}>
-                  <label className="text-xs text-slate-400 block mb-1">
-                    Search library title
-                    {form.arrId != null && (
-                      <span className="ml-2 text-green-400">✓ id:{form.arrId}</span>
-                    )}
-                  </label>
-                  <div className="relative">
-                    <input
-                      className="w-full bg-slate-700 text-white text-sm rounded px-3 py-1.5 border border-slate-600 focus:outline-none focus:border-indigo-500 pr-8"
-                      value={scopeSearch}
-                      onChange={e => handleScopeInputChange(e.target.value)}
-                      onFocus={() => { if (scopeResults.length > 0) setScopeOpen(true) }}
-                      placeholder={`Search ${form.mediaType === 'movie' ? 'movie' : 'series'} library…`}
-                    />
-                    {scopeSearch && (
-                      <button
-                        type="button"
-                        onClick={clearScopeSelection}
-                        className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white text-sm leading-none"
-                      >
-                        ×
-                      </button>
-                    )}
-                    {scopeOpen && scopeResults.length > 0 && (
-                      <ul className="absolute z-30 w-full mt-1 bg-slate-700 border border-slate-600 rounded shadow-lg max-h-48 overflow-y-auto">
-                        {scopeResults.map(item => (
-                          <li key={item.id}>
-                            <button
-                              type="button"
-                              className="w-full text-left px-3 py-2 text-sm hover:bg-slate-600 text-white flex items-baseline gap-2"
-                              onClick={() => handleScopeSelect(item)}
-                            >
-                              <span className="truncate">{item.title}</span>
-                              {item.year && <span className="text-slate-400 text-xs shrink-0">{item.year}</span>}
-                            </button>
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                    {scopeOpen && scopeResults.length === 0 && scopeSearch && (
-                      <div className="absolute z-30 w-full mt-1 bg-slate-700 border border-slate-600 rounded px-3 py-2 text-slate-400 text-sm">
-                        No matches in library cache. Refresh the cache first.
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
             </div>
             {formError && <p className="text-red-400 text-sm">{formError}</p>}
             <div className="flex gap-2">
@@ -384,7 +266,7 @@ export function RulesPanel() {
                 {saving ? 'Saving…' : editingId ? 'Update' : 'Save'}
               </button>
               <button
-                onClick={() => { setShowForm(false); setEditingId(null); setForm(BLANK_FORM); setScopeSearch(''); setScopeResults([]); setScopeOpen(false) }}
+                onClick={() => { setShowForm(false); setEditingId(null); setForm(BLANK_FORM) }}
                 className="px-4 py-1.5 text-sm bg-slate-600 hover:bg-slate-500 text-white rounded"
               >
                 Cancel
@@ -394,7 +276,7 @@ export function RulesPanel() {
         )}
 
         {rules.length === 0 && !showForm && (
-          <p className="text-slate-500 text-sm">No rules yet. Add one to start auto-deleting watched media.</p>
+          <p className="text-slate-500 text-sm">No rules yet. Add one, then assign it to titles in the Library.</p>
         )}
 
         <div className="space-y-2">
@@ -402,7 +284,7 @@ export function RulesPanel() {
             <div key={rule.id} className="flex items-center gap-3 bg-slate-800 rounded-lg px-4 py-3">
               <button
                 onClick={() => handleToggleEnabled(rule)}
-                className={`w-8 h-5 rounded-full transition-colors ${rule.enabled ? 'bg-indigo-600' : 'bg-slate-600'}`}
+                className={`w-8 h-5 rounded-full transition-colors shrink-0 ${rule.enabled ? 'bg-indigo-600' : 'bg-slate-600'}`}
                 title={rule.enabled ? 'Enabled — click to disable' : 'Disabled — click to enable'}
               >
                 <span className={`block w-3 h-3 bg-white rounded-full mx-auto transition-transform ${rule.enabled ? 'translate-x-1.5' : '-translate-x-1.5'}`} />
@@ -411,14 +293,14 @@ export function RulesPanel() {
                 <span className="text-white text-sm font-medium">{rule.name}</span>
                 <span className="ml-2 text-slate-400 text-xs">after {delayLabel(rule)}</span>
               </div>
-              <span className={`text-xs px-2 py-0.5 rounded ${rule.action === 'delete' ? 'bg-red-900 text-red-300' : 'bg-blue-900 text-blue-300'}`}>
+              <span className={`text-xs px-2 py-0.5 rounded shrink-0 ${rule.action === 'delete' ? 'bg-red-900 text-red-300' : 'bg-blue-900 text-blue-300'}`}>
                 {rule.action}
               </span>
-              <span className="text-xs px-2 py-0.5 rounded bg-slate-700 text-slate-300">
-                {rule.scope === 'global' ? 'Global' : rule.scopeTitle ?? `id:${rule.arrId}`}
+              <span className={`text-xs px-2 py-0.5 rounded shrink-0 ${rule.targets.length === 0 ? 'bg-slate-700 text-slate-500' : 'bg-indigo-950 text-indigo-300'}`}>
+                {targetsLabel(rule)}
               </span>
-              <button onClick={() => handleEditRule(rule)} className="text-slate-400 hover:text-white text-sm" title="Edit">&#9999;</button>
-              <button onClick={() => handleDeleteRule(rule.id)} className="text-slate-400 hover:text-red-400 text-sm" title="Delete">&times;</button>
+              <button onClick={() => handleEditRule(rule)} className="text-slate-400 hover:text-white text-sm shrink-0" title="Edit">&#9999;</button>
+              <button onClick={() => handleDeleteRule(rule.id)} className="text-slate-400 hover:text-red-400 text-sm shrink-0" title="Delete">&times;</button>
             </div>
           ))}
         </div>
@@ -448,7 +330,6 @@ export function RulesPanel() {
           </div>
         </div>
 
-        {/* Filter tabs */}
         <div className="flex gap-1 mb-3">
           {(['all', 'pending', 'done', 'failed', 'cancelled'] as QueueFilter[]).map(f => (
             <button

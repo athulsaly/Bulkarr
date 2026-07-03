@@ -145,7 +145,7 @@ test('enqueueRuleMatches skips unmatched events', () => {
 test('enqueueRuleMatches adds item when rule matches', () => {
   const rule: AutoDeleteRule = {
     id: 'r1', name: 'Test', enabled: true, mediaType: 'movie', granularity: 'movie',
-    action: 'delete', deleteFiles: true, delayAmount: 7, delayUnit: 'days', scope: 'global',
+    action: 'delete', deleteFiles: true, delayAmount: 7, delayUnit: 'days', targets: [{ arrId: 10, arrTarget: 'movies' as const }],
   }
   mockStore.rules = [rule]
   const event: WatchedEvent = {

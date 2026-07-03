@@ -44,7 +44,7 @@ const movieRule: AutoDeleteRule = {
   deleteFiles: true,
   delayAmount: 7,
   delayUnit: 'days',
-  scope: 'global',
+  targets: [{ arrId: 10, arrTarget: 'movies' as const }],
 }
 
 const episodeRule: AutoDeleteRule = {
@@ -57,7 +57,7 @@ const episodeRule: AutoDeleteRule = {
   deleteFiles: true,
   delayAmount: 1,
   delayUnit: 'days',
-  scope: 'global',
+  targets: [{ arrId: 20, arrTarget: 'series' as const }],
 }
 
 const seasonRule: AutoDeleteRule = {
@@ -70,7 +70,7 @@ const seasonRule: AutoDeleteRule = {
   deleteFiles: false,
   delayAmount: 2,
   delayUnit: 'days',
-  scope: 'global',
+  targets: [{ arrId: 20, arrTarget: 'series' as const }],
 }
 
 // --- delayToMs ---
@@ -157,34 +157,36 @@ test('does not skip if existing queue item is cancelled', () => {
   expect(items).toHaveLength(1)
 })
 
-// --- specific scope priority ---
+// --- multiple rule assignment ---
 
-test('specific scope rule takes priority over global for same granularity', () => {
-  const specificRule: AutoDeleteRule = {
+test('two rules targeting the same arrId both fire', () => {
+  const rule2: AutoDeleteRule = {
     ...movieRule,
-    id: 'r-specific',
-    scope: 'specific',
-    arrId: 10,
-    arrTarget: 'movies',
+    id: 'r2-movie',
+    name: 'Unmonitor after 1 day',
+    action: 'unmonitor',
     delayAmount: 1,
   }
-  const items = evaluateRules(baseMovieEvent, [movieRule, specificRule], [], [baseMovieEvent])
-  // Only specific rule fires for this arrId
-  expect(items).toHaveLength(1)
-  expect(items[0].ruleId).toBe('r-specific')
+  const items = evaluateRules(baseMovieEvent, [movieRule, rule2], [], [baseMovieEvent])
+  expect(items).toHaveLength(2)
+  expect(items.map(i => i.ruleId)).toContain('r1')
+  expect(items.map(i => i.ruleId)).toContain('r2-movie')
 })
 
-test('global rule fires when no specific rule matches this arrId', () => {
-  const specificForOther: AutoDeleteRule = {
+test('rule with different arrId does not fire', () => {
+  const ruleForOther: AutoDeleteRule = {
     ...movieRule,
     id: 'r-other',
-    scope: 'specific',
-    arrId: 99,
-    arrTarget: 'movies',
+    targets: [{ arrId: 99, arrTarget: 'movies' as const }],
   }
-  const items = evaluateRules(baseMovieEvent, [movieRule, specificForOther], [], [baseMovieEvent])
-  expect(items).toHaveLength(1)
-  expect(items[0].ruleId).toBe('r1')
+  const items = evaluateRules(baseMovieEvent, [ruleForOther], [], [baseMovieEvent])
+  expect(items).toHaveLength(0)
+})
+
+test('unassigned rule (empty targets) does not fire', () => {
+  const unassigned: AutoDeleteRule = { ...movieRule, targets: [] }
+  const items = evaluateRules(baseMovieEvent, [unassigned], [], [baseMovieEvent])
+  expect(items).toHaveLength(0)
 })
 
 // --- season granularity ---

@@ -1,20 +1,14 @@
 export const runtime = 'nodejs'
 
 import { NextRequest, NextResponse } from 'next/server'
-import { v4 as uuidv4 } from 'uuid'
 import { readStore, updateStore } from '@/lib/store'
 import { enqueueRuleMatches } from '@/lib/deletion-executor'
-import type { AutoDeleteRule } from '@/lib/types'
 
-interface AssignItem {
-  arrId: number
-  scopeTitle?: string
-}
-
+// POST: add titles to a rule's targets
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => null) as {
     target?: string
-    items?: AssignItem[]
+    items?: { arrId: number; scopeTitle?: string }[]
     ruleId?: string
   } | null
 
@@ -27,55 +21,63 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'target, items, ruleId required' }, { status: 400 })
   }
 
-  const store = readStore()
-  const template = store.rules.find(r => r.id === body.ruleId)
-  if (!template) {
-    return NextResponse.json({ error: 'rule not found' }, { status: 404 })
-  }
-
   const target = body.target as 'movies' | 'series'
-  const created: AutoDeleteRule[] = []
+  const store = readStore()
+  const rule = store.rules.find(r => r.id === body.ruleId)
+  if (!rule) return NextResponse.json({ error: 'rule not found' }, { status: 404 })
 
-  for (const { arrId, scopeTitle } of body.items) {
-    const alreadyExists = store.rules.some(r =>
-      r.scope === 'specific' &&
-      r.arrId === arrId &&
-      r.arrTarget === target &&
-      r.name === template.name
-    )
-    if (alreadyExists) continue
+  const existingKeys = new Set(rule.targets.map(t => `${t.arrId}:${t.arrTarget}`))
+  const toAdd = body.items.filter(i => !existingKeys.has(`${i.arrId}:${target}`))
 
-    created.push({
-      id: uuidv4(),
-      name: template.name,
-      enabled: template.enabled,
-      mediaType: template.mediaType,
-      granularity: template.granularity,
-      action: template.action,
-      deleteFiles: template.deleteFiles,
-      delayAmount: template.delayAmount,
-      delayUnit: template.delayUnit,
-      scope: 'specific',
-      arrId,
-      arrTarget: target,
-      scopeTitle,
-    })
-  }
+  if (toAdd.length === 0) return NextResponse.json({ added: 0 })
 
-  if (created.length) {
-    updateStore(s => { s.rules.push(...created) })
-
-    const freshStore = readStore()
-    const matchedEvents = freshStore.watchedEvents.filter(e => e.matchStatus === 'matched')
-    let enqueued = 0
-    for (const ev of matchedEvents) {
-      const before = readStore().deletionQueue.length
-      enqueueRuleMatches(ev)
-      const after = readStore().deletionQueue.length
-      enqueued += Math.max(0, after - before)
+  updateStore(s => {
+    const r = s.rules.find(r => r.id === body.ruleId)
+    if (!r) return
+    for (const item of toAdd) {
+      r.targets.push({ arrId: item.arrId, arrTarget: target, scopeTitle: item.scopeTitle })
     }
-    return NextResponse.json({ created, enqueued })
+  })
+
+  const freshStore = readStore()
+  const matchedEvents = freshStore.watchedEvents.filter(e => e.matchStatus === 'matched')
+  let enqueued = 0
+  for (const ev of matchedEvents) {
+    const before = readStore().deletionQueue.length
+    enqueueRuleMatches(ev)
+    const after = readStore().deletionQueue.length
+    enqueued += Math.max(0, after - before)
   }
 
-  return NextResponse.json({ created: [], enqueued: 0 })
+  return NextResponse.json({ added: toAdd.length, enqueued })
+}
+
+// DELETE: remove a title from a rule's targets
+export async function DELETE(req: NextRequest) {
+  const body = await req.json().catch(() => null) as {
+    ruleId?: string
+    arrId?: number
+    arrTarget?: string
+  } | null
+
+  if (
+    !body ||
+    typeof body.ruleId !== 'string' ||
+    typeof body.arrId !== 'number' ||
+    (body.arrTarget !== 'movies' && body.arrTarget !== 'series')
+  ) {
+    return NextResponse.json({ error: 'ruleId, arrId, arrTarget required' }, { status: 400 })
+  }
+
+  const store = readStore()
+  const idx = store.rules.findIndex(r => r.id === body.ruleId)
+  if (idx === -1) return NextResponse.json({ error: 'rule not found' }, { status: 404 })
+
+  updateStore(s => {
+    const r = s.rules[idx]
+    if (!r) return
+    r.targets = r.targets.filter(t => !(t.arrId === body.arrId && t.arrTarget === body.arrTarget))
+  })
+
+  return NextResponse.json({ ok: true })
 }

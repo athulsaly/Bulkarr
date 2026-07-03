@@ -46,7 +46,18 @@ export function readStore(): Store {
     if (raw.lastPolledAt && typeof raw.lastPolledAt === 'object') {
       Object.assign(store.lastPolledAt, raw.lastPolledAt)
     }
-    if (Array.isArray(raw.rules)) store.rules = raw.rules as AutoDeleteRule[]
+    if (Array.isArray(raw.rules)) {
+      store.rules = (raw.rules as unknown as Array<Record<string, unknown>>).map(r => {
+        if ('scope' in r && !('targets' in r)) {
+          const { scope, arrId, arrTarget, scopeTitle, ...rest } = r
+          const targets = (scope === 'specific' && arrId != null)
+            ? [{ arrId, arrTarget, scopeTitle }]
+            : []
+          return { ...rest, targets } as unknown as AutoDeleteRule
+        }
+        return r as unknown as AutoDeleteRule
+      })
+    }
     if (Array.isArray(raw.deletionQueue)) {
       const rawQueue = raw.deletionQueue as DeletionQueueItem[]
       const pending = rawQueue.filter(i => i.status === 'pending')
