@@ -17,12 +17,14 @@ import { SetupScreen } from '@/components/SetupScreen'
 import { HistoryDrawer } from '@/components/HistoryDrawer'
 import { WatchedDrawer } from '@/components/WatchedDrawer'
 import { NoMatchDrawer } from '@/components/NoMatchDrawer'
+import { RulesPanel } from '@/components/RulesPanel'
 import type { Target, ManageRow } from '@/lib/types'
 
 export default function Page() {
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [historyOpen, setHistoryOpen] = useState(false)
   const [watchedOpen, setWatchedOpen] = useState(false)
+  const [rulesOpen, setRulesOpen] = useState(false)
   const [unmatchedCount, setUnmatchedCount] = useState(0)
   const [noMatchOpen, setNoMatchOpen] = useState(false)
   const { toasts, addToast, dismiss } = useToast()
@@ -167,6 +169,12 @@ export default function Page() {
             History
           </button>
           <button
+            onClick={() => setRulesOpen(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded bg-slate-700 hover:bg-slate-600 text-slate-300"
+          >
+            Rules
+          </button>
+          <button
             onClick={() => setWatchedOpen(true)}
             className="flex items-center gap-1 text-slate-400 hover:text-slate-100 transition-colors text-sm"
             title="Watched events"
@@ -191,6 +199,20 @@ export default function Page() {
         onClose={() => setWatchedOpen(false)}
         onUnmatchedCountChange={setUnmatchedCount}
       />
+      {rulesOpen && (
+        <div className="fixed inset-0 z-40 bg-slate-900 overflow-y-auto">
+          <div className="flex items-center gap-3 px-6 py-4 border-b border-slate-700">
+            <button
+              onClick={() => setRulesOpen(false)}
+              className="text-sm text-slate-400 hover:text-white"
+            >
+              ← Back
+            </button>
+            <h1 className="text-white font-semibold">Auto-Delete Rules</h1>
+          </div>
+          <RulesPanel />
+        </div>
+      )}
       <NoMatchDrawer open={noMatchOpen} onClose={() => setNoMatchOpen(false)} entries={noMatchEntries} onRetry={handleRetry} onClear={handleClearNoMatches} />
 
       <DefaultsBar

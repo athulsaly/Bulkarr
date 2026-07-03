@@ -35,6 +35,22 @@ export function WatchedDrawer({ open, onClose, onUnmatchedCountChange }: Props) 
   const [loading, setLoading] = useState(false)
   const [rematching, setRematching] = useState(false)
   const [filter, setFilter] = useState<Filter>('all')
+  const [executing, setExecuting] = useState<Record<string, 'running' | 'done' | 'error'>>({})
+
+  const handleExecuteEvent = async (eventId: string) => {
+    setExecuting(prev => ({ ...prev, [eventId]: 'running' }))
+    try {
+      const res = await fetch('/api/deletion-queue/execute-event', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ watchedEventId: eventId }),
+      })
+      const data = await res.json() as { executed: number }
+      setExecuting(prev => ({ ...prev, [eventId]: res.ok && data.executed > 0 ? 'done' : 'error' }))
+    } catch {
+      setExecuting(prev => ({ ...prev, [eventId]: 'error' }))
+    }
+  }
 
   const load = useCallback(() => {
     setLoading(true)
@@ -167,6 +183,20 @@ export function WatchedDrawer({ open, onClose, onUnmatchedCountChange }: Props) 
                     <span className="text-xs text-slate-600">{formatAge(ev.watchedAt)}</span>
                   </div>
                 </div>
+                {ev.matchStatus === 'matched' && (
+                  <button
+                    onClick={() => handleExecuteEvent(ev.id)}
+                    disabled={executing[ev.id] === 'running'}
+                    title={executing[ev.id] === 'done' ? 'Executed' : executing[ev.id] === 'error' ? 'Failed' : 'Delete now via rules'}
+                    className={`text-xs px-1.5 py-0.5 rounded ${
+                      executing[ev.id] === 'done' ? 'bg-green-800 text-green-200' :
+                      executing[ev.id] === 'error' ? 'bg-red-900 text-red-300' :
+                      'bg-amber-700 hover:bg-amber-600 text-white'
+                    } disabled:opacity-50`}
+                  >
+                    {executing[ev.id] === 'running' ? '…' : executing[ev.id] === 'done' ? '✓' : executing[ev.id] === 'error' ? '!' : '⚡'}
+                  </button>
+                )}
                 <button
                   onClick={() => handleRemove(ev.id)}
                   className="text-slate-600 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all text-sm leading-none shrink-0 mt-0.5"
