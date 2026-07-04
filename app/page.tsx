@@ -1,381 +1,96 @@
 'use client'
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { useSettings } from '@/hooks/useSettings'
-import { useSession } from '@/hooks/useSession'
-import { useLookup } from '@/hooks/useLookup'
-import { useSubmit } from '@/hooks/useSubmit'
-import { useManage } from '@/hooks/useManage'
-import { useToast } from '@/hooks/useToast'
 import { Spinner } from '@/components/Spinner'
-import { SettingsDrawer } from '@/components/SettingsDrawer'
-import { DefaultsBar } from '@/components/DefaultsBar'
-import { InputPanel } from '@/components/InputPanel'
-import { ReviewTable } from '@/components/ReviewTable'
-import { ManageTable } from '@/components/ManageTable'
-import { ToastStack } from '@/components/ToastStack'
-import { SetupScreen } from '@/components/SetupScreen'
-import { HistoryDrawer } from '@/components/HistoryDrawer'
-import { WatchedDrawer } from '@/components/WatchedDrawer'
-import { NoMatchDrawer } from '@/components/NoMatchDrawer'
-import { RulesPanel } from '@/components/RulesPanel'
-import type { Target, ManageRow } from '@/lib/types'
+import { StatCard } from '@/components/StatCard'
+import type { HistoryItem } from '@/lib/types'
 
-export default function Page() {
-  const [drawerOpen, setDrawerOpen] = useState(false)
-  const [historyOpen, setHistoryOpen] = useState(false)
-  const [watchedOpen, setWatchedOpen] = useState(false)
-  const [rulesOpen, setRulesOpen] = useState(false)
-  const [unmatchedCount, setUnmatchedCount] = useState(0)
-  const [noMatchOpen, setNoMatchOpen] = useState(false)
-  const { toasts, addToast, dismiss } = useToast()
-  const settingsHook = useSettings()
-  const [setupDone, setSetupDone] = useState(false)
+interface DashboardData {
+  movies: number
+  series: number
+  activeRules: number
+  pendingQueue: number
+  recentHistory: HistoryItem[]
+}
 
-  const [activeTarget, setActiveTarget] = useState<Target>('movies')
-  const [activeMode, setActiveMode] = useState<'add' | 'manage'>('add')
-
-  const moviesSession = useSession(null, 'movies')
-  const seriesSession = useSession(null, 'series')
-  const session = activeTarget === 'movies' ? moviesSession : seriesSession
-
-  const { lookup, running: lookupRunning } = useLookup()
-  const { submit, submitting, summary, progress: submitProgress, clearSummary } = useSubmit()
-
-  const manageHook = useManage()
-  const [manageRows, setManageRows] = useState<ManageRow[]>([])
-  const [selectedManageIds, setSelectedManageIds] = useState<Set<string>>(new Set())
-  const [deleteFiles, setDeleteFiles] = useState(false)
-  const [manageInput, setManageInput] = useState('')
+export default function DashboardPage() {
+  const [data, setData] = useState<DashboardData | null>(null)
 
   useEffect(() => {
-    if (activeMode === 'manage') {
-      setManageRows([])
-      setSelectedManageIds(new Set())
-      manageHook.clearSummary()
-    }
-  }, [activeTarget])
-
-  useEffect(() => {
-    setDeleteFiles(false)
-  }, [activeTarget, activeMode])
-
-  // ── Add mode handlers ────────────────────────────────────────────────────
-  const handleLookup = useCallback(async () => {
-    clearSummary()
-    const rows = await lookup(session.rawInput, activeTarget, settingsHook.cache)
-    session.setRows(rows)
-    if (rows.every(r => r.status === 'no_match')) {
-      addToast('No matches found', 'error')
-    }
-  }, [session, activeTarget, lookup, settingsHook.cache, addToast, clearSummary])
-
-  const handleSubmit = useCallback(async () => {
-    const s = await submit(session.rows, activeTarget, session.defaults, session.updateRow)
-    addToast(`Done — ${s.added} added · ${s.skipped} skipped · ${s.failed} failed`, s.failed > 0 ? 'error' : 'success')
-  }, [session, activeTarget, submit, addToast])
-
-  const handleDeleteRow = useCallback((id: string) => {
-    session.setRows(session.rows.filter(r => r.id !== id))
-  }, [session])
-
-  const handleToggleAll = useCallback((included: boolean) => {
-    session.setRows(session.rows.map(r => (r.status === 'no_match' || r.status === 'in_library') ? r : { ...r, included }))
-  }, [session])
-
-  // ── Manage mode handlers ─────────────────────────────────────────────────
-  const handleManageLookup = useCallback(async () => {
-    manageHook.clearSummary()
-    const rows = await manageHook.lookup(manageInput, activeTarget)
-    setManageRows(rows)
-    setSelectedManageIds(new Set(rows.filter(r => r.status === 'matched').map(r => r.id)))
-    if (rows.length > 0 && rows.every(r => r.status === 'no_match')) {
-      addToast('No library matches found', 'error')
-    }
-  }, [manageInput, activeTarget, manageHook, addToast])
-
-  const handleManageSubmit = useCallback(async (action: 'remove' | 'unmonitor') => {
-    const updateRow = (id: string, patch: Partial<ManageRow>) => {
-      setManageRows(prev => prev.map(r => r.id === id ? { ...r, ...patch } : r))
-    }
-    const rowsToSubmit = manageRows
-      .filter(r => selectedManageIds.has(r.id) && r.status === 'matched')
-      .map(r => ({ ...r, action }))
-    const s = await manageHook.submit(rowsToSubmit, activeTarget, deleteFiles, updateRow)
-    addToast(`Done — ${s.done} applied · ${s.failed} failed`, s.failed > 0 ? 'error' : 'success')
-  }, [manageRows, selectedManageIds, activeTarget, deleteFiles, manageHook, addToast])
-
-  const handleManageDeleteRow = useCallback((id: string) => {
-    setManageRows(prev => prev.filter(r => r.id !== id))
-    setSelectedManageIds(prev => { const next = new Set(prev); next.delete(id); return next })
+    fetch('/api/dashboard').then(r => r.json()).then(setData)
   }, [])
-
-  const handleManageUpdateRow = useCallback((id: string, patch: Partial<ManageRow>) => {
-    setManageRows(prev => prev.map(r => r.id === id ? { ...r, ...patch } : r))
-  }, [])
-
-  const handleToggleManageSelect = useCallback((id: string) => {
-    setSelectedManageIds(prev => {
-      const next = new Set(prev)
-      if (next.has(id)) next.delete(id)
-      else next.add(id)
-      return next
-    })
-  }, [])
-
-  const handleSelectAllManage = useCallback(() => {
-    const matchedIds = manageRows.filter(r => r.status === 'matched').map(r => r.id)
-    const allSelected = matchedIds.length > 0 && matchedIds.every(id => selectedManageIds.has(id))
-    setSelectedManageIds(allSelected ? new Set() : new Set(matchedIds))
-  }, [manageRows, selectedManageIds])
-
-  // ── Shared ───────────────────────────────────────────────────────────────
-  const noMatchEntries = [
-    ...moviesSession.rows.filter(r => r.status === 'no_match').map(row => ({ row, target: 'movies' as Target })),
-    ...seriesSession.rows.filter(r => r.status === 'no_match').map(row => ({ row, target: 'series' as Target })),
-  ]
-
-  const handleClearNoMatches = useCallback(() => {
-    moviesSession.setRows(moviesSession.rows.filter(r => r.status !== 'no_match'))
-    seriesSession.setRows(seriesSession.rows.filter(r => r.status !== 'no_match'))
-    setNoMatchOpen(false)
-  }, [moviesSession, seriesSession])
-
-  const handleRetry = useCallback((text: string, target: Target) => {
-    if (target === 'movies') moviesSession.setRawInput(text)
-    else seriesSession.setRawInput(text)
-    setActiveTarget(target)
-    setNoMatchOpen(false)
-  }, [moviesSession, seriesSession])
-
-  const tmdbConfigured = !!settingsHook.settings.tmdbApiKey
-  const includedMatchedCount = session.rows.filter(r => r.included && (r.status === 'matched' || r.status === 'in_library')).length
-  const manageEligibleCount = manageRows.filter(r => r.status === 'matched' && selectedManageIds.has(r.id)).length
-
-  const needsSetup = !settingsHook.loading && !setupDone &&
-    !settingsHook.settings.radarr && !settingsHook.settings.sonarr
-
-  if (settingsHook.loading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-900">
-        <div className="flex flex-col items-center gap-3">
-          <Spinner className="w-8 h-8 text-orange-500" />
-          <span className="text-slate-500 text-sm">Loading…</span>
-        </div>
-      </div>
-    )
-  }
-
-  if (needsSetup) {
-    return <SetupScreen hook={settingsHook} onComplete={() => setSetupDone(true)} />
-  }
-
-  const isManage = activeMode === 'manage'
-  const currentInput = isManage ? manageInput : session.rawInput
-  const handleInputChange = isManage ? setManageInput : session.setRawInput
-  const handleLookupAction = isManage ? handleManageLookup : handleLookup
 
   return (
-    <div className="flex flex-col min-h-screen bg-slate-900 text-slate-100">
-      {/* Top bar */}
-      <header className="flex items-center justify-between px-4 py-3 bg-slate-800 border-b border-slate-700 shrink-0">
-        <span className="font-bold text-orange-500 tracking-tight">Bulkarr</span>
-        <div className="flex items-center gap-3">
-          {noMatchEntries.length > 0 && (
-            <button onClick={() => setNoMatchOpen(true)} className="flex items-center gap-1 text-xs text-red-400 hover:text-red-300 transition-colors" title="No matches">
-              No Matches
-              <span className="bg-red-800 text-red-200 rounded-full px-1.5 py-0.5 text-xs leading-none">{noMatchEntries.length}</span>
-            </button>
-          )}
-          <button onClick={() => setHistoryOpen(true)} className="text-slate-400 hover:text-slate-100 transition-colors text-sm" title="History">
-            History
-          </button>
-          <Link
-            href="/library"
-            className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded bg-slate-700 hover:bg-slate-600 text-slate-300 transition-colors"
-          >
-            Library
-          </Link>
-          <button
-            onClick={() => setRulesOpen(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded bg-slate-700 hover:bg-slate-600 text-slate-300"
-          >
-            Rules
-          </button>
-          <button
-            onClick={() => setWatchedOpen(true)}
-            className="flex items-center gap-1 text-slate-400 hover:text-slate-100 transition-colors text-sm"
-            title="Watched events"
-          >
-            Watched
-            {unmatchedCount > 0 && (
-              <span className="bg-blue-800 text-blue-200 rounded-full px-1.5 py-0.5 text-xs leading-none">
-                {unmatchedCount}
-              </span>
-            )}
-          </button>
-          <button onClick={() => setDrawerOpen(true)} className="text-slate-400 hover:text-slate-100 transition-colors text-lg" title="Settings">
-            ⚙
-          </button>
+    <div className="p-8 max-w-5xl mx-auto space-y-8">
+      <h1 className="text-2xl font-bold text-slate-100">Dashboard</h1>
+
+      {!data ? (
+        <div className="flex items-center justify-center h-40">
+          <Spinner className="w-6 h-6 text-indigo-400" />
         </div>
-      </header>
-
-      <SettingsDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} hook={settingsHook} onToast={addToast} />
-      <HistoryDrawer open={historyOpen} onClose={() => setHistoryOpen(false)} />
-      <WatchedDrawer
-        open={watchedOpen}
-        onClose={() => setWatchedOpen(false)}
-        onUnmatchedCountChange={setUnmatchedCount}
-      />
-      {rulesOpen && (
-        <div className="fixed inset-0 z-40 bg-slate-900 overflow-y-auto">
-          <div className="flex items-center gap-3 px-6 py-4 border-b border-slate-700">
-            <button
-              onClick={() => setRulesOpen(false)}
-              className="text-sm text-slate-400 hover:text-white"
-            >
-              ← Back
-            </button>
-            <h1 className="text-white font-semibold">Auto-Delete Rules</h1>
-          </div>
-          <RulesPanel />
-        </div>
-      )}
-      <NoMatchDrawer open={noMatchOpen} onClose={() => setNoMatchOpen(false)} entries={noMatchEntries} onRetry={handleRetry} onClear={handleClearNoMatches} />
-
-      <DefaultsBar
-        target={activeTarget}
-        onTargetChange={setActiveTarget}
-        activeMode={activeMode}
-        onModeChange={mode => { setActiveMode(mode); manageHook.clearSummary(); clearSummary() }}
-        defaults={session.defaults}
-        onDefaultsChange={session.setDefaults}
-        cache={settingsHook.cache}
-      />
-
-      <main className="flex-1 overflow-auto">
-        <InputPanel
-          value={currentInput}
-          onChange={handleInputChange}
-          onLookup={handleLookupAction}
-          running={isManage ? manageHook.looking : lookupRunning}
-        />
-
-        {isManage ? (
-          <ManageTable
-            rows={manageRows}
-            selectedIds={selectedManageIds}
-            onToggleSelect={handleToggleManageSelect}
-            onSelectAll={handleSelectAllManage}
-            onUpdateRow={handleManageUpdateRow}
-            onDeleteRow={handleManageDeleteRow}
-          />
-        ) : (
-          <ReviewTable
-            rows={session.rows}
-            defaults={session.defaults}
-            cache={settingsHook.cache}
-            target={activeTarget}
-            cardView={tmdbConfigured}
-            onUpdateRow={session.updateRow}
-            onDeleteRow={handleDeleteRow}
-            onToggleAll={handleToggleAll}
-          />
-        )}
-      </main>
-
-      {/* Submit bar */}
-      {isManage ? (
-        manageRows.length > 0 && (
-          <footer className="sticky bottom-0 z-20 bg-slate-800 border-t border-slate-700">
-            {manageHook.progress && (
-              <div className="px-4 pt-2 space-y-1">
-                <div className="flex justify-between text-xs text-slate-500">
-                  <span>Applying…</span>
-                  <span>{manageHook.progress.done} / {manageHook.progress.total}</span>
-                </div>
-                <div className="h-1 w-full bg-slate-700 rounded overflow-hidden">
-                  <div
-                    className="h-full bg-orange-500 transition-all duration-200"
-                    style={{ width: `${(manageHook.progress.done / manageHook.progress.total) * 100}%` }}
-                  />
-                </div>
-              </div>
-            )}
-            <div className="px-4 py-3 flex items-center gap-3 flex-wrap">
-              <span className="text-xs text-slate-500 shrink-0">
-                {manageEligibleCount} selected
-              </span>
-              <button
-                onClick={() => handleManageSubmit('remove')}
-                disabled={manageHook.submitting || manageEligibleCount === 0}
-                className="flex items-center gap-2 rounded bg-red-700 hover:bg-red-600 disabled:opacity-40 disabled:cursor-not-allowed px-4 py-1.5 font-medium text-sm transition-colors"
-              >
-                {manageHook.submitting && <Spinner className="w-3.5 h-3.5" />}
-                Remove selected
-              </button>
-              <button
-                onClick={() => handleManageSubmit('unmonitor')}
-                disabled={manageHook.submitting || manageEligibleCount === 0}
-                className="flex items-center gap-2 rounded bg-slate-600 hover:bg-slate-500 disabled:opacity-40 disabled:cursor-not-allowed px-4 py-1.5 font-medium text-sm transition-colors"
-              >
-                Unmonitor selected
-              </button>
-              <label className={`flex items-center gap-1.5 text-xs cursor-pointer ml-1 ${manageEligibleCount > 0 ? 'text-slate-300' : 'text-slate-600 cursor-not-allowed'}`}>
-                <input
-                  type="checkbox"
-                  checked={deleteFiles}
-                  disabled={manageEligibleCount === 0}
-                  onChange={e => setDeleteFiles(e.target.checked)}
-                  className="accent-orange-500 disabled:opacity-30"
-                />
-                Delete files
-              </label>
-              {manageHook.summary && (
-                <span className="text-sm text-slate-400 ml-1">
-                  {manageHook.summary.done} applied · {manageHook.summary.failed} failed
-                </span>
-              )}
-            </div>
-          </footer>
-        )
       ) : (
-        session.rows.length > 0 && (
-          <footer className="sticky bottom-0 z-20 bg-slate-800 border-t border-slate-700">
-            {submitProgress && (
-              <div className="px-4 pt-2 space-y-1">
-                <div className="flex justify-between text-xs text-slate-500">
-                  <span>Adding…</span>
-                  <span>{submitProgress.done} / {submitProgress.total}</span>
-                </div>
-                <div className="h-1 w-full bg-slate-700 rounded overflow-hidden">
-                  <div
-                    className="h-full bg-orange-500 transition-all duration-200"
-                    style={{ width: `${(submitProgress.done / submitProgress.total) * 100}%` }}
-                  />
-                </div>
-              </div>
-            )}
-            <div className="px-4 py-3 flex items-center gap-4">
-              <button
-                onClick={handleSubmit}
-                disabled={submitting || includedMatchedCount === 0}
-                className="flex items-center gap-2 rounded bg-orange-600 hover:bg-orange-500 disabled:opacity-40 disabled:cursor-not-allowed px-5 py-2 font-medium text-sm transition-colors"
-              >
-                {submitting && <Spinner className="w-4 h-4" />}
-                {submitting ? 'Adding…' : `Add Selected (${includedMatchedCount})`}
-              </button>
-              {summary && (
-                <span className="text-sm text-slate-400">
-                  {summary.added} added · {summary.skipped} skipped · {summary.failed} failed
-                </span>
-              )}
-            </div>
-          </footer>
-        )
-      )}
+        <>
+          {/* Stats */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <StatCard icon="🎬" label="Movies" value={data.movies} />
+            <StatCard icon="📺" label="Series" value={data.series} />
+            <StatCard icon="⚡" label="Active Rules" value={data.activeRules} accent />
+            <StatCard icon="⏳" label="Queue Pending" value={data.pendingQueue} />
+          </div>
 
-      <ToastStack toasts={toasts} dismiss={dismiss} />
+          {/* Quick links */}
+          <div>
+            <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-widest mb-3">Quick Start</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <Link
+                href="/add/movies"
+                className="flex items-center gap-3 p-4 rounded-xl border border-[#2a2a3a] bg-[#1c1c28] hover:border-indigo-500/50 transition-colors group"
+              >
+                <span className="text-2xl">🎬</span>
+                <div>
+                  <p className="text-slate-100 font-medium group-hover:text-indigo-300 transition-colors">Add Movies →</p>
+                  <p className="text-slate-500 text-sm">Paste titles to bulk-add to Radarr</p>
+                </div>
+              </Link>
+              <Link
+                href="/add/series"
+                className="flex items-center gap-3 p-4 rounded-xl border border-[#2a2a3a] bg-[#1c1c28] hover:border-indigo-500/50 transition-colors group"
+              >
+                <span className="text-2xl">📺</span>
+                <div>
+                  <p className="text-slate-100 font-medium group-hover:text-indigo-300 transition-colors">Add Series →</p>
+                  <p className="text-slate-500 text-sm">Paste titles to bulk-add to Sonarr</p>
+                </div>
+              </Link>
+            </div>
+          </div>
+
+          {/* Recent activity */}
+          {data.recentHistory.length > 0 && (
+            <div>
+              <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-widest mb-3">Recent Additions</h2>
+              <div className="rounded-xl border border-[#2a2a3a] bg-[#1c1c28] divide-y divide-[#2a2a3a]">
+                {data.recentHistory.map(item => (
+                  <div key={item.id} className="flex items-center gap-3 px-4 py-3">
+                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                      item.target === 'movies'
+                        ? 'bg-blue-900/50 text-blue-300'
+                        : 'bg-purple-900/50 text-purple-300'
+                    }`}>
+                      {item.target === 'movies' ? 'Movie' : 'Series'}
+                    </span>
+                    <span className="text-slate-100 text-sm font-medium">{item.title}</span>
+                    {item.year && <span className="text-slate-500 text-xs">{item.year}</span>}
+                    <span className="ml-auto text-slate-600 text-xs">
+                      {new Date(item.addedAt).toLocaleDateString()}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </>
+      )}
     </div>
   )
 }
