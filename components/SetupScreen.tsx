@@ -52,7 +52,7 @@ function ServiceFields({ label, name, url, apiKey, onUrlChange, onApiKeyChange, 
       <button
         onClick={handleTest}
         disabled={!url || !apiKey || testing}
-        className="rounded bg-white/5 hover:bg-white/10 disabled:opacity-40 disabled:cursor-not-allowed px-3 py-1.5 text-xs transition-colors"
+        className="rounded-lg bg-white/5 hover:bg-white/10 disabled:opacity-40 disabled:cursor-not-allowed px-3 py-1.5 text-xs transition-colors"
       >
         {testing ? 'Testing…' : 'Test Connection'}
       </button>
@@ -166,7 +166,7 @@ export function SetupScreen({ hook, onComplete }: Props) {
           <button
             onClick={handleSave}
             disabled={saving}
-            className="w-full flex items-center justify-center gap-2 rounded bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 py-2 font-semibold text-sm transition-colors"
+            className="w-full flex items-center justify-center gap-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 py-2 font-semibold text-sm transition-colors"
           >
             {saving && <Spinner className="w-4 h-4" />}
             {saving ? 'Saving…' : 'Save & Continue'}

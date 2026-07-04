@@ -314,7 +314,7 @@ export default function LibraryPage() {
             <button
               key={t}
               onClick={() => setTarget(t)}
-              className={`px-3 py-1.5 text-sm rounded capitalize transition-colors ${
+              className={`px-3 py-1.5 text-sm rounded-lg capitalize transition-colors ${
                 target === t ? 'bg-indigo-600 text-white' : 'bg-white/5 text-slate-300 hover:bg-white/10'
               }`}
             >
@@ -348,7 +348,7 @@ export default function LibraryPage() {
         {/* Filters toggle */}
         <button
           onClick={() => setFiltersOpen(o => !o)}
-          className={`flex items-center gap-1.5 px-3 py-1.5 text-sm rounded transition-colors ${
+          className={`flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg transition-colors ${
             filterCount > 0 || filtersOpen
               ? 'bg-indigo-700 text-white'
               : 'bg-white/5 text-slate-300 hover:bg-white/10'
@@ -367,14 +367,14 @@ export default function LibraryPage() {
           <button
             onClick={() => setView('list')}
             title="List view"
-            className={`px-2.5 py-1.5 text-sm rounded transition-colors ${view === 'list' ? 'bg-white/10 text-white' : 'text-slate-400 hover:text-white'}`}
+            className={`px-2.5 py-1.5 text-sm rounded-lg transition-colors ${view === 'list' ? 'bg-white/10 text-white' : 'text-slate-400 hover:text-white'}`}
           >
             ☰
           </button>
           <button
             onClick={() => setView('cards')}
             title="Card view"
-            className={`px-2.5 py-1.5 text-sm rounded transition-colors ${view === 'cards' ? 'bg-white/10 text-white' : 'text-slate-400 hover:text-white'}`}
+            className={`px-2.5 py-1.5 text-sm rounded-lg transition-colors ${view === 'cards' ? 'bg-white/10 text-white' : 'text-slate-400 hover:text-white'}`}
           >
             ⊞
           </button>
@@ -383,7 +383,7 @@ export default function LibraryPage() {
         <button
           onClick={loadLibrary}
           disabled={loading}
-          className="flex items-center gap-1.5 text-xs px-3 py-1.5 bg-white/5 hover:bg-white/10 rounded disabled:opacity-50 transition-colors shrink-0"
+          className="flex items-center gap-1.5 text-xs px-3 py-1.5 bg-white/5 hover:bg-white/10 rounded-lg disabled:opacity-50 transition-colors shrink-0"
         >
           {loading ? <Spinner className="w-3 h-3" /> : null}
           Refresh
@@ -584,7 +584,7 @@ export default function LibraryPage() {
                   <td className="px-4 py-2.5 text-right">
                     <button
                       onClick={() => openAssignFor([item])}
-                      className="text-xs px-2.5 py-1 bg-indigo-700 hover:bg-indigo-600 rounded text-white transition-colors"
+                      className="text-xs px-2.5 py-1 bg-indigo-700 hover:bg-indigo-600 rounded-lg text-white transition-colors"
                     >
                       Assign
                     </button>
@@ -636,7 +636,7 @@ export default function LibraryPage() {
           <span className="text-sm text-slate-400">{selectedCount} selected</span>
           <button
             onClick={() => openAssignFor(filtered.filter(i => selectedIds.has(i.id)))}
-            className="px-4 py-1.5 text-sm bg-indigo-600 hover:bg-indigo-500 rounded text-white transition-colors"
+            className="px-4 py-1.5 text-sm bg-indigo-600 hover:bg-indigo-500 rounded-lg text-white transition-colors"
           >
             Assign Rule…
           </button>
@@ -820,14 +820,14 @@ export default function LibraryPage() {
                   <button
                     onClick={handleAssign}
                     disabled={!pickedRuleId || assigning || compatibleRules.length === 0}
-                    className="flex items-center gap-2 px-4 py-1.5 text-sm bg-indigo-600 hover:bg-indigo-500 rounded text-white disabled:opacity-50 transition-colors"
+                    className="flex items-center gap-2 px-4 py-1.5 text-sm bg-indigo-600 hover:bg-indigo-500 rounded-lg text-white disabled:opacity-50 transition-colors"
                   >
                     {assigning && <Spinner className="w-3.5 h-3.5" />}
                     {assigning ? 'Assigning…' : 'Assign'}
                   </button>
                   <button
                     onClick={() => setAssignOpen(false)}
-                    className="px-4 py-1.5 text-sm bg-white/5 hover:bg-white/10 rounded text-white transition-colors"
+                    className="px-4 py-1.5 text-sm bg-white/5 hover:bg-white/10 rounded-lg text-white transition-colors"
                   >
                     Cancel
                   </button>
@@ -837,14 +837,14 @@ export default function LibraryPage() {
                   <button
                     onClick={handleCreateAndAssign}
                     disabled={creating || !newRuleForm.name.trim()}
-                    className="flex items-center gap-2 px-4 py-1.5 text-sm bg-indigo-600 hover:bg-indigo-500 rounded text-white disabled:opacity-50 transition-colors"
+                    className="flex items-center gap-2 px-4 py-1.5 text-sm bg-indigo-600 hover:bg-indigo-500 rounded-lg text-white disabled:opacity-50 transition-colors"
                   >
                     {creating && <Spinner className="w-3.5 h-3.5" />}
                     {creating ? 'Creating…' : 'Create & Assign'}
                   </button>
                   <button
                     onClick={() => setAssignOpen(false)}
-                    className="px-4 py-1.5 text-sm bg-white/5 hover:bg-white/10 rounded text-white transition-colors"
+                    className="px-4 py-1.5 text-sm bg-white/5 hover:bg-white/10 rounded-lg text-white transition-colors"
                   >
                     Cancel
                   </button>
@@ -857,7 +857,7 @@ export default function LibraryPage() {
 
       {/* Toast */}
       {toast && (
-        <div className="fixed bottom-6 right-6 z-50 bg-[#1c1c28] border border-[#2a2a3a] text-white text-sm px-4 py-2 rounded shadow-lg">
+        <div className="fixed bottom-6 right-6 z-50 bg-[#1c1c28] border border-[#2a2a3a] text-white text-sm px-4 py-2 rounded-xl shadow-lg">
           {toast}
         </div>
       )}

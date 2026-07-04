@@ -80,7 +80,7 @@ export function InputPanel({ value, onChange, onLookup, running }: Props) {
         <button
           onClick={onLookup}
           disabled={count === 0 || running}
-          className="flex items-center gap-2 rounded bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed px-4 py-1.5 text-sm font-medium transition-colors"
+          className="flex items-center gap-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed px-4 py-1.5 text-sm font-medium transition-colors"
         >
           {running && <Spinner className="w-3.5 h-3.5" />}
           {running ? 'Looking up…' : 'Parse & Look Up'}
@@ -88,7 +88,7 @@ export function InputPanel({ value, onChange, onLookup, running }: Props) {
         <button
           onClick={() => fileInputRef.current?.click()}
           disabled={running}
-          className="rounded bg-white/5 hover:bg-white/10 disabled:opacity-40 disabled:cursor-not-allowed px-4 py-1.5 text-sm transition-colors"
+          className="rounded-lg bg-white/5 hover:bg-white/10 disabled:opacity-40 disabled:cursor-not-allowed px-4 py-1.5 text-sm transition-colors"
         >
           Upload File
         </button>
