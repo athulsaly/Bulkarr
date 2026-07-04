@@ -22,7 +22,7 @@ export default function ManagePage() {
     setSelectedIds(new Set())
     manageHook.clearSummary()
     setDeleteFiles(false)
-  }, [activeTarget, manageHook])
+  }, [activeTarget])
 
   const handleLookup = useCallback(async () => {
     manageHook.clearSummary()
