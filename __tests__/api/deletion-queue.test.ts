@@ -1,13 +1,13 @@
 // @jest-environment node
 
-import { GET } from '@/app/api/deletion-queue/route'
+import { GET, POST as EnqueueItem } from '@/app/api/deletion-queue/route'
 import { DELETE as CancelItem } from '@/app/api/deletion-queue/[id]/route'
 import { POST as ExecuteItem } from '@/app/api/deletion-queue/[id]/execute/route'
 import { POST as TriggerPost } from '@/app/api/deletion-queue/trigger/route'
 import { POST as EvaluatePost } from '@/app/api/deletion-queue/evaluate/route'
 import { POST as ExecuteEventPost } from '@/app/api/deletion-queue/execute-event/route'
 import { NextRequest } from 'next/server'
-import type { DeletionQueueItem, WatchedEvent } from '@/lib/types'
+import type { DeletionQueueItem, WatchedEvent, AutoDeleteRule } from '@/lib/types'
 
 const pendingItem: DeletionQueueItem = {
   id: 'q1', ruleId: 'r1', ruleName: 'Test Rule', watchedEventId: 'e1',
@@ -21,8 +21,14 @@ const matchedEvent: WatchedEvent = {
   arrId: 10, arrTarget: 'movies', matchStatus: 'matched',
 }
 
+const movieRule: AutoDeleteRule = {
+  id: 'r1', name: 'Delete after watching', enabled: true, mediaType: 'movie',
+  granularity: 'movie', action: 'delete', deleteFiles: true,
+  delayAmount: 7, delayUnit: 'days', targets: [],
+}
+
 const mockStore = {
-  rules: [] as import('@/lib/types').AutoDeleteRule[],
+  rules: [] as AutoDeleteRule[],
   deletionQueue: [] as DeletionQueueItem[],
   watchedEvents: [] as WatchedEvent[],
   settings: { radarr: null, sonarr: null },
@@ -77,17 +83,93 @@ test('DELETE cancels a pending item', async () => {
   expect(mockStore.deletionQueue[0].status).toBe('cancelled')
 })
 
-test('DELETE returns 400 if item is not pending', async () => {
+test('DELETE permanently removes a terminal (done) item', async () => {
   mockStore.deletionQueue = [{ ...pendingItem, status: 'done' }]
   const req = new NextRequest('http://localhost/api/deletion-queue/q1', { method: 'DELETE' })
   const res = await CancelItem(req, { params: Promise.resolve({ id: 'q1' }) })
-  expect(res.status).toBe(400)
+  expect(res.status).toBe(200)
+  expect(mockStore.deletionQueue).toHaveLength(0)
+})
+
+test('DELETE permanently removes a terminal (failed) item', async () => {
+  mockStore.deletionQueue = [{ ...pendingItem, status: 'failed' }]
+  const req = new NextRequest('http://localhost/api/deletion-queue/q1', { method: 'DELETE' })
+  const res = await CancelItem(req, { params: Promise.resolve({ id: 'q1' }) })
+  expect(res.status).toBe(200)
+  expect(mockStore.deletionQueue).toHaveLength(0)
 })
 
 test('DELETE returns 404 for unknown id', async () => {
   const req = new NextRequest('http://localhost/api/deletion-queue/nope', { method: 'DELETE' })
   const res = await CancelItem(req, { params: Promise.resolve({ id: 'nope' }) })
   expect(res.status).toBe(404)
+})
+
+// --- POST /api/deletion-queue ---
+
+test('POST enqueues a matched event under a rule', async () => {
+  mockStore.watchedEvents = [{ ...matchedEvent }]
+  mockStore.rules = [{ ...movieRule }]
+  const req = new NextRequest('http://localhost/api/deletion-queue', {
+    method: 'POST',
+    body: JSON.stringify({ watchedEventId: 'e1', ruleId: 'r1' }),
+    headers: { 'Content-Type': 'application/json' },
+  })
+  const res = await EnqueueItem(req)
+  const body = await res.json()
+  expect(res.status).toBe(200)
+  expect(body.ok).toBe(true)
+  expect(mockStore.deletionQueue).toHaveLength(1)
+  expect(mockStore.deletionQueue[0].ruleId).toBe('r1')
+  expect(mockStore.deletionQueue[0].arrId).toBe(10)
+  expect(mockStore.deletionQueue[0].status).toBe('pending')
+  expect(mockStore.deletionQueue[0].scheduledAt).toBeGreaterThan(Date.now())
+})
+
+test('POST returns 404 for unknown watchedEventId', async () => {
+  mockStore.rules = [{ ...movieRule }]
+  const req = new NextRequest('http://localhost/api/deletion-queue', {
+    method: 'POST',
+    body: JSON.stringify({ watchedEventId: 'nope', ruleId: 'r1' }),
+    headers: { 'Content-Type': 'application/json' },
+  })
+  const res = await EnqueueItem(req)
+  expect(res.status).toBe(404)
+})
+
+test('POST returns 404 for unknown ruleId', async () => {
+  mockStore.watchedEvents = [{ ...matchedEvent }]
+  const req = new NextRequest('http://localhost/api/deletion-queue', {
+    method: 'POST',
+    body: JSON.stringify({ watchedEventId: 'e1', ruleId: 'nope' }),
+    headers: { 'Content-Type': 'application/json' },
+  })
+  const res = await EnqueueItem(req)
+  expect(res.status).toBe(404)
+})
+
+test('POST returns 400 for unmatched event', async () => {
+  mockStore.watchedEvents = [{ ...matchedEvent, matchStatus: 'unmatched' }]
+  mockStore.rules = [{ ...movieRule }]
+  const req = new NextRequest('http://localhost/api/deletion-queue', {
+    method: 'POST',
+    body: JSON.stringify({ watchedEventId: 'e1', ruleId: 'r1' }),
+    headers: { 'Content-Type': 'application/json' },
+  })
+  const res = await EnqueueItem(req)
+  expect(res.status).toBe(400)
+})
+
+test('POST returns 400 for disabled rule', async () => {
+  mockStore.watchedEvents = [{ ...matchedEvent }]
+  mockStore.rules = [{ ...movieRule, enabled: false }]
+  const req = new NextRequest('http://localhost/api/deletion-queue', {
+    method: 'POST',
+    body: JSON.stringify({ watchedEventId: 'e1', ruleId: 'r1' }),
+    headers: { 'Content-Type': 'application/json' },
+  })
+  const res = await EnqueueItem(req)
+  expect(res.status).toBe(400)
 })
 
 // --- POST /api/deletion-queue/[id]/execute ---
@@ -129,11 +211,11 @@ test('trigger runs executor cycle and returns counts', async () => {
 // --- POST /api/deletion-queue/evaluate ---
 
 test('evaluate enqueues matches for matched events', async () => {
-  const movieRule: import('@/lib/types').AutoDeleteRule = {
+  const movieRule2: AutoDeleteRule = {
     id: 'r1', name: 'n', enabled: true, mediaType: 'movie', granularity: 'movie',
     action: 'delete', deleteFiles: true, delayAmount: 7, delayUnit: 'days', targets: [{ arrId: 10, arrTarget: 'movies' as const }],
   }
-  mockStore.rules = [movieRule]
+  mockStore.rules = [movieRule2]
   mockStore.watchedEvents = [matchedEvent]
   const req = new NextRequest('http://localhost/api/deletion-queue/evaluate', { method: 'POST' })
   const res = await EvaluatePost(req)

@@ -10,11 +10,15 @@ export async function DELETE(_req: NextRequest, { params }: Params) {
   const store = readStore()
   const item = store.deletionQueue.find(i => i.id === id)
   if (!item) return NextResponse.json({ error: 'not found' }, { status: 404 })
-  if (item.status !== 'pending') return NextResponse.json({ error: 'item is not pending' }, { status: 400 })
 
   updateStore(s => {
-    const qi = s.deletionQueue.find(i => i.id === id)
-    if (qi) qi.status = 'cancelled'
+    const idx = s.deletionQueue.findIndex(i => i.id === id)
+    if (idx === -1) return
+    if (s.deletionQueue[idx].status === 'pending') {
+      s.deletionQueue[idx].status = 'cancelled'
+    } else {
+      s.deletionQueue.splice(idx, 1)
+    }
   })
   return NextResponse.json({ ok: true })
 }
