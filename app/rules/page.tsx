@@ -102,6 +102,11 @@ export default function RulesPage() {
     await fetch(`/api/deletion-queue/${id}`, { method: 'DELETE' }); loadQueue()
   }
 
+  const handleRemoveItem = async (id: string) => {
+    await fetch(`/api/deletion-queue/${id}`, { method: 'DELETE' })
+    setQueue(q => q.filter(i => i.id !== id))
+  }
+
   const handleExecuteItem = async (id: string) => {
     await fetch(`/api/deletion-queue/${id}/execute`, { method: 'POST' }); loadQueue()
   }
@@ -278,11 +283,13 @@ export default function RulesPage() {
               </div>
               <span className="text-slate-400 text-xs">{formatScheduled(item.scheduledAt)}</span>
               <span className={`text-xs px-2 py-0.5 rounded-full ${STATUS_CHIP[item.status]}`}>{item.status}</span>
-              {item.status === 'pending' && (
+              {item.status === 'pending' ? (
                 <>
                   <button onClick={() => handleExecuteItem(item.id)} className="text-xs px-2 py-0.5 bg-amber-700/80 hover:bg-amber-600/80 text-white rounded-lg" title="Execute now">Trigger</button>
                   <button onClick={() => handleCancelItem(item.id)} className="text-slate-400 hover:text-red-400 text-xs" title="Cancel">&times;</button>
                 </>
+              ) : (
+                <button onClick={() => handleRemoveItem(item.id)} className="text-slate-500 hover:text-red-400 text-xs" title="Remove from queue">&times;</button>
               )}
             </div>
           ))}
