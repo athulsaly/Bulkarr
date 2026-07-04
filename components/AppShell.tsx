@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { useSettings } from '@/hooks/useSettings'
 import { Spinner } from './Spinner'
 import { SetupScreen } from './SetupScreen'
+import { Sidebar } from './Sidebar'
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const settingsHook = useSettings()
@@ -29,8 +30,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex h-screen overflow-hidden">
-      {/* Sidebar placeholder — replaced in Task 3 */}
-      <div className="w-[220px] shrink-0 bg-[#161620] border-r border-[#2a2a3a]" />
+      <Sidebar />
       <main className="flex-1 overflow-auto bg-[#0f0f12]">
         {children}
       </main>
