@@ -3,7 +3,9 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { Spinner } from '@/components/Spinner'
 import { StatCard } from '@/components/StatCard'
-import type { HistoryItem } from '@/lib/types'
+import { useToast } from '@/hooks/useToast'
+import { ToastStack } from '@/components/ToastStack'
+import type { HistoryItem, WatchedEvent, AutoDeleteRule } from '@/lib/types'
 
 interface DashboardData {
   movies: number
@@ -11,17 +13,69 @@ interface DashboardData {
   activeRules: number
   pendingQueue: number
   recentHistory: HistoryItem[]
+  recentWatched: WatchedEvent[]
+}
+
+function delayLabel(r: AutoDeleteRule): string {
+  return r.delayUnit === 'year' ? '1 year' : `${r.delayAmount} ${r.delayUnit}`
 }
 
 export default function DashboardPage() {
   const [data, setData] = useState<DashboardData | null>(null)
+  const [rules, setRules] = useState<AutoDeleteRule[]>([])
+  const [openDropdown, setOpenDropdown] = useState<string | null>(null)
+  const [enqueueing, setEnqueueing] = useState<string | null>(null)
+  const { toasts, addToast, dismiss } = useToast()
 
   useEffect(() => {
-    fetch('/api/dashboard')
-      .then(r => r.json())
-      .then(setData)
-      .catch(() => setData({ movies: 0, series: 0, activeRules: 0, pendingQueue: 0, recentHistory: [] }))
+    Promise.all([
+      fetch('/api/dashboard').then(r => r.json()) as Promise<DashboardData>,
+      fetch('/api/rules').then(r => r.json()) as Promise<{ rules: AutoDeleteRule[] }>,
+    ])
+      .then(([dash, rulesData]) => {
+        setData(dash)
+        setRules(rulesData.rules ?? [])
+      })
+      .catch(() => {
+        setData({ movies: 0, series: 0, activeRules: 0, pendingQueue: 0, recentHistory: [], recentWatched: [] })
+        setRules([])
+      })
   }, [])
+
+  useEffect(() => {
+    if (!openDropdown) return
+    const handleClick = (e: MouseEvent) => {
+      if (!(e.target as Element).closest(`[data-dropdown-id="${openDropdown}"]`)) {
+        setOpenDropdown(null)
+      }
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [openDropdown])
+
+  const handleApplyRule = async (event: WatchedEvent, rule: AutoDeleteRule) => {
+    setOpenDropdown(null)
+    setEnqueueing(event.id)
+    try {
+      const res = await fetch('/api/deletion-queue', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ watchedEventId: event.id, ruleId: rule.id }),
+      })
+      const displayTitle = event.mediaType === 'episode'
+        ? (event.seriesTitle ?? event.title)
+        : event.title
+      if (res.ok) {
+        addToast(`Queued: ${rule.action} — ${displayTitle}`, 'success')
+      } else {
+        addToast('Failed to enqueue', 'error')
+      }
+    } catch {
+      addToast('Failed to enqueue', 'error')
+    } finally {
+      setEnqueueing(null)
+    }
+  }
 
   return (
     <div className="p-8 max-w-5xl mx-auto space-y-8">
@@ -40,6 +94,92 @@ export default function DashboardPage() {
             <StatCard icon="⚡" label="Active Rules" value={data.activeRules} accent />
             <StatCard icon="⏳" label="Queue Pending" value={data.pendingQueue} />
           </div>
+
+          {/* Recently Played */}
+          {data.recentWatched.length > 0 && (
+            <div>
+              <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-widest mb-3">Recently Played</h2>
+              <div className="rounded-xl border border-[#2a2a3a] bg-[#1c1c28] divide-y divide-[#2a2a3a]">
+                {data.recentWatched.map(event => {
+                  const applicableRules = rules.filter(r =>
+                    r.enabled && (event.mediaType === 'movie' ? r.mediaType === 'movie' : r.mediaType === 'series')
+                  )
+                  const displayTitle = event.mediaType === 'episode'
+                    ? (event.seriesTitle ?? event.title)
+                    : event.title
+                  const episodeSuffix =
+                    event.mediaType === 'episode' &&
+                    event.seasonNumber != null &&
+                    event.episodeNumber != null
+                      ? ` · S${String(event.seasonNumber).padStart(2, '0')}E${String(event.episodeNumber).padStart(2, '0')}`
+                      : null
+
+                  return (
+                    <div key={event.id} className="flex items-center gap-3 px-4 py-3">
+                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium shrink-0 ${
+                        event.mediaType === 'movie'
+                          ? 'bg-blue-900/50 text-blue-300'
+                          : 'bg-purple-900/50 text-purple-300'
+                      }`}>
+                        {event.mediaType === 'movie' ? 'Movie' : 'Series'}
+                      </span>
+                      <span className="text-slate-100 text-sm font-medium truncate">
+                        {displayTitle}
+                        {episodeSuffix && (
+                          <span className="text-slate-400 font-normal">{episodeSuffix}</span>
+                        )}
+                      </span>
+                      <span className="ml-auto text-slate-600 text-xs shrink-0">
+                        {new Date(event.watchedAt).toLocaleDateString()}
+                      </span>
+                      <div
+                        className="relative shrink-0"
+                        data-dropdown-id={event.id}
+                      >
+                        <button
+                          onClick={() => setOpenDropdown(openDropdown === event.id ? null : event.id)}
+                          disabled={enqueueing === event.id}
+                          className="flex items-center gap-1.5 bg-white/5 hover:bg-white/10 text-slate-300 text-xs rounded-lg px-2.5 py-1 disabled:opacity-50"
+                        >
+                          {enqueueing === event.id
+                            ? <Spinner className="w-3 h-3" />
+                            : <span>⚡</span>}
+                          <span>{enqueueing === event.id ? 'Queuing…' : 'Apply rule'}</span>
+                          {enqueueing !== event.id && <span className="text-slate-500">▾</span>}
+                        </button>
+                        {openDropdown === event.id && (
+                          <div className="absolute right-0 top-full mt-1 w-64 bg-[#1c1c28] border border-[#2a2a3a] rounded-xl shadow-xl z-10 py-1">
+                            {applicableRules.length === 0 ? (
+                              <div className="px-3 py-2 text-xs text-slate-500">
+                                No rules configured.{' '}
+                                <Link href="/rules" className="text-indigo-400 hover:text-indigo-300">
+                                  Add one →
+                                </Link>
+                              </div>
+                            ) : (
+                              applicableRules.map(rule => (
+                                <button
+                                  key={rule.id}
+                                  onClick={() => handleApplyRule(event, rule)}
+                                  className="w-full flex items-center gap-2 px-3 py-2 text-xs text-slate-200 hover:bg-white/5 text-left"
+                                >
+                                  <span className="font-medium truncate">{rule.name}</span>
+                                  <span className={`ml-auto shrink-0 ${rule.action === 'delete' ? 'text-red-400' : 'text-blue-400'}`}>
+                                    {rule.action}
+                                  </span>
+                                  <span className="text-slate-500 shrink-0">{delayLabel(rule)}</span>
+                                </button>
+                              ))
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
 
           {/* Quick links */}
           <div>
@@ -94,6 +234,7 @@ export default function DashboardPage() {
           )}
         </>
       )}
+      <ToastStack toasts={toasts} dismiss={dismiss} />
     </div>
   )
 }
