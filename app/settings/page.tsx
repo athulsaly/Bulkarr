@@ -30,12 +30,6 @@ function ArrSection({ name, label, hook, onToast }: { name: 'radarr' | 'sonarr';
     if (!r.ok) onToast(`${label} connection failed: ${r.error}`, 'error')
   }
 
-  const handleRefresh = async () => {
-    const r = await hook.refreshCache(name)
-    if (r.ok) onToast(`${label} cache refreshed`, 'success')
-    else onToast(`Cache refresh failed: ${r.error}`, 'error')
-  }
-
   return (
     <div className="space-y-3">
       <h3 className="text-sm font-semibold text-indigo-400 uppercase tracking-wide">{label}</h3>
@@ -55,10 +49,6 @@ function ArrSection({ name, label, hook, onToast }: { name: 'radarr' | 'sonarr';
         </button>
       </div>
       {testResult && <p className={`text-xs ${testResult.ok ? 'text-green-400' : 'text-red-400'}`}>{testResult.ok ? `✓ Connected — v${testResult.version}` : `✗ ${testResult.error}`}</p>}
-      <button onClick={handleRefresh} disabled={hook.refreshing === name} className="w-full flex items-center justify-center gap-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-[#2a2a3a] px-3 py-1.5 text-xs text-slate-400 transition-colors disabled:opacity-50">
-        {hook.refreshing === name && <Spinner className="w-3 h-3" />}
-        {hook.refreshing === name ? 'Refreshing cache…' : 'Refresh Cache'}
-      </button>
     </div>
   )
 }
@@ -102,6 +92,7 @@ function MediaServerSection({ name, label, placeholder, hook, onToast }: { name:
   const [url, setUrl] = useState(existing?.url ?? '')
   const [apiKey, setApiKey] = useState('')
   const [testResult, setTestResult] = useState<{ ok: boolean; error?: string } | null>(null)
+  const [testLoading, setTestLoading] = useState(false)
   const [origin, setOrigin] = useState('')
 
   useEffect(() => { setUrl(existing?.url ?? ''); setApiKey('') }, [existing?.url])
@@ -114,9 +105,14 @@ function MediaServerSection({ name, label, placeholder, hook, onToast }: { name:
   }
 
   const handleTest = async () => {
-    const r = await fetch('/api/settings/test', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ service: name, url: url || undefined, apiKey: apiKey || undefined }) }).then(r => r.json()) as { ok: boolean; error?: string }
-    setTestResult(r)
-    if (!r.ok) onToast(`${label} connection failed: ${r.error}`, 'error')
+    setTestLoading(true)
+    try {
+      const r = await fetch('/api/settings/test', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ service: name, url: url || undefined, apiKey: apiKey || undefined }) }).then(r => r.json()) as { ok: boolean; error?: string }
+      setTestResult(r)
+      if (!r.ok) onToast(`${label} connection failed: ${r.error}`, 'error')
+    } finally {
+      setTestLoading(false)
+    }
   }
 
   const webhookUrl = `${origin}/api/webhook/${name}`
@@ -134,7 +130,14 @@ function MediaServerSection({ name, label, placeholder, hook, onToast }: { name:
       </div>
       <div className="flex gap-2">
         <button onClick={handleSave} className="flex-1 rounded-lg bg-indigo-600 hover:bg-indigo-500 px-3 py-1.5 text-sm font-medium transition-colors">Save</button>
-        <button onClick={handleTest} className="flex-1 rounded-lg bg-white/5 hover:bg-white/10 px-3 py-1.5 text-sm transition-colors">Test</button>
+        <button
+          onClick={handleTest}
+          disabled={testLoading}
+          className="flex-1 flex items-center justify-center gap-1.5 rounded-lg bg-white/5 hover:bg-white/10 px-3 py-1.5 text-sm transition-colors disabled:opacity-50"
+        >
+          {testLoading && <Spinner className="w-3.5 h-3.5" />}
+          {testLoading ? 'Testing…' : 'Test'}
+        </button>
       </div>
       {testResult && <p className={`text-xs ${testResult.ok ? 'text-green-400' : 'text-red-400'}`}>{testResult.ok ? '✓ Connected' : `✗ ${testResult.error}`}</p>}
       <div>
@@ -150,11 +153,11 @@ function MediaServerSection({ name, label, placeholder, hook, onToast }: { name:
 
 function MediaGlobalSection({ hook, onToast }: { hook: SettingsHook; onToast: (msg: string, kind?: 'success' | 'error' | 'info') => void }) {
   const cfg = hook.settings.mediaServer
-  const [interval, setInterval] = useState(String(cfg.pollIntervalMinutes))
+  const [pollInterval, setPollInterval] = useState(String(cfg.pollIntervalMinutes))
   const [threshold, setThreshold] = useState(String(cfg.watchedThresholdPct))
 
   const handleSave = async () => {
-    await hook.saveSettings({ mediaServer: { pollIntervalMinutes: Number(interval), watchedThresholdPct: Number(threshold) } })
+    await hook.saveSettings({ mediaServer: { pollIntervalMinutes: Number(pollInterval), watchedThresholdPct: Number(threshold) } })
     onToast('Media server settings saved', 'success')
   }
 
@@ -164,7 +167,7 @@ function MediaGlobalSection({ hook, onToast }: { hook: SettingsHook; onToast: (m
       <div className="flex gap-3">
         <div className="flex-1">
           <label className="block text-xs text-slate-400 mb-1">Poll interval</label>
-          <select value={interval} onChange={e => setInterval(e.target.value)} className="w-full rounded-lg bg-white/5 border border-[#2a2a3a] px-2 py-1.5 text-sm text-slate-200 focus:outline-none focus:border-indigo-500/60">
+          <select value={pollInterval} onChange={e => setPollInterval(e.target.value)} className="w-full rounded-lg bg-white/5 border border-[#2a2a3a] px-2 py-1.5 text-sm text-slate-200 focus:outline-none focus:border-indigo-500/60">
             {[5, 15, 30, 60].map(v => <option key={v} value={v}>{v} min</option>)}
           </select>
         </div>
@@ -204,6 +207,29 @@ export default function SettingsPage() {
         <MediaServerSection name="plex" label="Plex" placeholder="http://plex:32400" hook={hook} onToast={addToast} />
         <hr className="border-[#2a2a3a]" />
         <MediaGlobalSection hook={hook} onToast={addToast} />
+      </div>
+
+      <div className="rounded-xl border border-[#2a2a3a] bg-[#1c1c28] p-5 space-y-4">
+        <h2 className="text-sm font-semibold text-slate-300 uppercase tracking-wide">Cache</h2>
+        <p className="text-xs text-slate-500">Refresh the local cache of quality profiles, root folders, and library contents from Radarr and Sonarr.</p>
+        <div className="flex gap-3">
+          <button
+            onClick={() => hook.refreshCache('radarr').then(r => r.ok ? addToast('Radarr cache refreshed', 'success') : addToast(`Cache refresh failed: ${r.error}`, 'error'))}
+            disabled={hook.refreshing === 'radarr'}
+            className="flex-1 flex items-center justify-center gap-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-[#2a2a3a] px-3 py-2 text-sm text-slate-300 transition-colors disabled:opacity-50"
+          >
+            {hook.refreshing === 'radarr' && <Spinner className="w-3.5 h-3.5" />}
+            {hook.refreshing === 'radarr' ? 'Refreshing…' : 'Refresh Radarr'}
+          </button>
+          <button
+            onClick={() => hook.refreshCache('sonarr').then(r => r.ok ? addToast('Sonarr cache refreshed', 'success') : addToast(`Cache refresh failed: ${r.error}`, 'error'))}
+            disabled={hook.refreshing === 'sonarr'}
+            className="flex-1 flex items-center justify-center gap-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-[#2a2a3a] px-3 py-2 text-sm text-slate-300 transition-colors disabled:opacity-50"
+          >
+            {hook.refreshing === 'sonarr' && <Spinner className="w-3.5 h-3.5" />}
+            {hook.refreshing === 'sonarr' ? 'Refreshing…' : 'Refresh Sonarr'}
+          </button>
+        </div>
       </div>
 
       <ToastStack toasts={toasts} dismiss={dismiss} />
