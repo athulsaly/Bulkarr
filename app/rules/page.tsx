@@ -17,10 +17,10 @@ const BLANK_FORM: Partial<AutoDeleteRule> = {
 }
 
 const STATUS_CHIP: Record<DeletionQueueStatus, string> = {
-  pending: 'bg-yellow-800 text-yellow-200',
-  done: 'bg-green-800 text-green-200',
-  failed: 'bg-red-900 text-red-300',
-  cancelled: 'bg-slate-700 text-slate-400',
+  pending: 'bg-yellow-800/60 text-yellow-200',
+  done: 'bg-green-800/60 text-green-200',
+  failed: 'bg-red-900/60 text-red-300',
+  cancelled: 'bg-[#2a2a3a] text-slate-400',
 }
 
 function delayLabel(r: AutoDeleteRule): string {
@@ -49,7 +49,7 @@ function formatScheduled(ts: number): string {
 
 type QueueFilter = 'all' | DeletionQueueStatus
 
-export function RulesPanel() {
+export default function RulesPage() {
   const [rules, setRules] = useState<AutoDeleteRule[]>([])
   const [queue, setQueue] = useState<DeletionQueueItem[]>([])
   const [queueFilter, setQueueFilter] = useState<QueueFilter>('all')
@@ -66,66 +66,44 @@ export function RulesPanel() {
   }, [])
 
   const loadQueue = useCallback(() => {
-    fetch('/api/deletion-queue')
-      .then(r => r.json())
-      .then(d => setQueue(d.items ?? []))
+    fetch('/api/deletion-queue').then(r => r.json()).then(d => setQueue(d.items ?? []))
   }, [])
 
   useEffect(() => { loadRules(); loadQueue() }, [loadRules, loadQueue])
 
   const handleSaveRule = async () => {
-    setSaving(true)
-    setFormError(null)
+    setSaving(true); setFormError(null)
     try {
       const method = editingId ? 'PUT' : 'POST'
       const url = editingId ? `/api/rules/${editingId}` : '/api/rules'
-      const res = await fetch(url, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
-      })
+      const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) })
       const data = await res.json()
       if (!res.ok) { setFormError(data.error ?? 'Failed to save'); return }
-      setShowForm(false)
-      setEditingId(null)
-      setForm(BLANK_FORM)
-      loadRules()
-      loadQueue()
-    } finally {
-      setSaving(false)
-    }
+      setShowForm(false); setEditingId(null); setForm(BLANK_FORM)
+      loadRules(); loadQueue()
+    } finally { setSaving(false) }
   }
 
   const handleDeleteRule = async (id: string) => {
     await fetch(`/api/rules/${id}`, { method: 'DELETE' })
-    loadRules()
-    loadQueue()
+    loadRules(); loadQueue()
   }
 
   const handleToggleEnabled = async (rule: AutoDeleteRule) => {
-    await fetch(`/api/rules/${rule.id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...rule, enabled: !rule.enabled }),
-    })
+    await fetch(`/api/rules/${rule.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...rule, enabled: !rule.enabled }) })
     loadRules()
   }
 
   const handleEditRule = (rule: AutoDeleteRule) => {
-    setForm({ ...rule })
-    setEditingId(rule.id)
-    setShowForm(true)
-    setFormError(null)
+    setForm({ ...rule }); setEditingId(rule.id); setShowForm(true); setFormError(null)
   }
 
   const handleCancelItem = async (id: string) => {
-    await fetch(`/api/deletion-queue/${id}`, { method: 'DELETE' })
-    loadQueue()
+    await fetch(`/api/deletion-queue/${id}`, { method: 'DELETE' }); loadQueue()
   }
 
   const handleExecuteItem = async (id: string) => {
-    await fetch(`/api/deletion-queue/${id}/execute`, { method: 'POST' })
-    loadQueue()
+    await fetch(`/api/deletion-queue/${id}/execute`, { method: 'POST' }); loadQueue()
   }
 
   const handleTrigger = async () => {
@@ -141,7 +119,6 @@ export function RulesPanel() {
   }
 
   const filteredQueue = queueFilter === 'all' ? queue : queue.filter(i => i.status === queueFilter)
-
   const queueCounts: Record<QueueFilter, number> = {
     all: queue.length,
     pending: queue.filter(i => i.status === 'pending').length,
@@ -150,16 +127,18 @@ export function RulesPanel() {
     cancelled: queue.filter(i => i.status === 'cancelled').length,
   }
 
+  const inp = 'w-full bg-white/5 text-slate-100 text-sm rounded-lg px-3 py-1.5 border border-[#2a2a3a] focus:outline-none focus:border-indigo-500/60'
+
   return (
-    <div className="p-6 space-y-8 max-w-4xl mx-auto">
+    <div className="p-6 max-w-4xl mx-auto space-y-8">
       {/* Rules section */}
       <section>
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-white">Auto-Delete Rules</h2>
+          <h1 className="text-xl font-bold text-slate-100">Auto-Delete Rules</h1>
           {!showForm && (
             <button
               onClick={() => { setForm(BLANK_FORM); setEditingId(null); setShowForm(true); setFormError(null) }}
-              className="px-3 py-1.5 text-sm bg-indigo-600 hover:bg-indigo-500 text-white rounded"
+              className="px-3 py-1.5 text-sm bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg"
             >
               + Add Rule
             </button>
@@ -167,108 +146,54 @@ export function RulesPanel() {
         </div>
 
         {showForm && (
-          <div className="bg-slate-800 rounded-lg p-4 mb-4 space-y-3">
-            <p className="text-xs text-slate-500">
-              Define the rule settings. Assign it to specific titles from the Library page.
-            </p>
+          <div className="rounded-xl border border-[#2a2a3a] bg-[#1c1c28] p-5 mb-4 space-y-3">
+            <p className="text-xs text-slate-500">Define the rule. Assign it to titles from the Library page.</p>
             <div className="grid grid-cols-2 gap-3">
               <div className="col-span-2">
                 <label className="text-xs text-slate-400 block mb-1">Name</label>
-                <input
-                  className="w-full bg-slate-700 text-white text-sm rounded px-3 py-1.5 border border-slate-600 focus:outline-none focus:border-indigo-500"
-                  value={form.name ?? ''}
-                  onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-                  placeholder="e.g. Delete after watching"
-                />
+                <input className={inp} value={form.name ?? ''} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="e.g. Delete after watching" />
               </div>
               <div>
                 <label className="text-xs text-slate-400 block mb-1">Media type</label>
-                <select
-                  className="w-full bg-slate-700 text-white text-sm rounded px-3 py-1.5 border border-slate-600"
-                  value={form.mediaType}
-                  onChange={e => {
-                    const mt = e.target.value as 'movie' | 'series'
-                    setForm(f => ({ ...f, mediaType: mt, granularity: mt === 'movie' ? 'movie' : 'episode' }))
-                  }}
-                >
+                <select className={inp} value={form.mediaType} onChange={e => { const mt = e.target.value as 'movie' | 'series'; setForm(f => ({ ...f, mediaType: mt, granularity: mt === 'movie' ? 'movie' : 'episode' })) }}>
                   <option value="movie">Movie</option>
                   <option value="series">Series</option>
                 </select>
               </div>
               <div>
                 <label className="text-xs text-slate-400 block mb-1">Granularity</label>
-                <select
-                  className="w-full bg-slate-700 text-white text-sm rounded px-3 py-1.5 border border-slate-600"
-                  value={form.granularity}
-                  onChange={e => setForm(f => ({ ...f, granularity: e.target.value as AutoDeleteRule['granularity'] }))}
-                  disabled={form.mediaType === 'movie'}
-                >
-                  {form.mediaType === 'movie' ? (
-                    <option value="movie">Movie</option>
-                  ) : (
-                    <>
-                      <option value="episode">Episode</option>
-                      <option value="season">Season</option>
-                    </>
-                  )}
+                <select className={inp} value={form.granularity} onChange={e => setForm(f => ({ ...f, granularity: e.target.value as AutoDeleteRule['granularity'] }))} disabled={form.mediaType === 'movie'}>
+                  {form.mediaType === 'movie' ? <option value="movie">Movie</option> : <><option value="episode">Episode</option><option value="season">Season</option></>}
                 </select>
               </div>
               <div>
                 <label className="text-xs text-slate-400 block mb-1">Action</label>
-                <select
-                  className="w-full bg-slate-700 text-white text-sm rounded px-3 py-1.5 border border-slate-600"
-                  value={form.action}
-                  onChange={e => setForm(f => ({ ...f, action: e.target.value as 'delete' | 'unmonitor' }))}
-                >
+                <select className={inp} value={form.action} onChange={e => setForm(f => ({ ...f, action: e.target.value as 'delete' | 'unmonitor' }))}>
                   <option value="delete">Delete</option>
                   <option value="unmonitor">Unmonitor</option>
                 </select>
               </div>
               <div className="flex items-center gap-2 pt-4">
-                <input
-                  type="checkbox"
-                  id="deleteFiles"
-                  checked={form.deleteFiles ?? false}
-                  onChange={e => setForm(f => ({ ...f, deleteFiles: e.target.checked }))}
-                  disabled={form.action !== 'delete'}
-                  className="rounded"
-                />
+                <input type="checkbox" id="deleteFiles" checked={form.deleteFiles ?? false} onChange={e => setForm(f => ({ ...f, deleteFiles: e.target.checked }))} disabled={form.action !== 'delete'} className="accent-indigo-500" />
                 <label htmlFor="deleteFiles" className="text-sm text-slate-300">Delete files</label>
               </div>
               <div>
                 <label className="text-xs text-slate-400 block mb-1">Delay amount</label>
-                <input
-                  type="number"
-                  min={1}
-                  className="w-full bg-slate-700 text-white text-sm rounded px-3 py-1.5 border border-slate-600"
-                  value={form.delayAmount ?? 7}
-                  onChange={e => setForm(f => ({ ...f, delayAmount: Number(e.target.value) }))}
-                />
+                <input type="number" min={1} className={inp} value={form.delayAmount ?? 7} onChange={e => setForm(f => ({ ...f, delayAmount: Number(e.target.value) }))} />
               </div>
               <div>
                 <label className="text-xs text-slate-400 block mb-1">Delay unit</label>
-                <select
-                  className="w-full bg-slate-700 text-white text-sm rounded px-3 py-1.5 border border-slate-600"
-                  value={form.delayUnit}
-                  onChange={e => setForm(f => ({ ...f, delayUnit: e.target.value as AutoDeleteRule['delayUnit'] }))}
-                >
+                <select className={inp} value={form.delayUnit} onChange={e => setForm(f => ({ ...f, delayUnit: e.target.value as AutoDeleteRule['delayUnit'] }))}>
                   {DELAY_UNITS.map(u => <option key={u} value={u}>{u}</option>)}
                 </select>
               </div>
             </div>
             {formError && <p className="text-red-400 text-sm">{formError}</p>}
             <div className="flex gap-2">
-              <button
-                onClick={handleSaveRule}
-                disabled={saving}
-                className="px-4 py-1.5 text-sm bg-indigo-600 hover:bg-indigo-500 text-white rounded disabled:opacity-50"
-              >
+              <button onClick={handleSaveRule} disabled={saving} className="px-4 py-1.5 text-sm bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg disabled:opacity-50">
                 {saving ? 'Saving…' : editingId ? 'Update' : 'Save'}
               </button>
-              <button
-                onClick={() => { setShowForm(false); setEditingId(null); setForm(BLANK_FORM) }}
-                className="px-4 py-1.5 text-sm bg-slate-600 hover:bg-slate-500 text-white rounded"
-              >
+              <button onClick={() => { setShowForm(false); setEditingId(null); setForm(BLANK_FORM) }} className="px-4 py-1.5 text-sm bg-white/5 hover:bg-white/10 text-slate-300 rounded-lg">
                 Cancel
               </button>
             </div>
@@ -281,50 +206,42 @@ export function RulesPanel() {
 
         <div className="space-y-2">
           {rules.map(rule => (
-            <div key={rule.id} className="flex items-center gap-3 bg-slate-800 rounded-lg px-4 py-3">
+            <div key={rule.id} className="flex items-center gap-3 rounded-xl border border-[#2a2a3a] bg-[#1c1c28] px-4 py-3">
               <button
                 onClick={() => handleToggleEnabled(rule)}
-                className={`w-8 h-5 rounded-full transition-colors shrink-0 ${rule.enabled ? 'bg-indigo-600' : 'bg-slate-600'}`}
+                className={`w-8 h-5 rounded-full transition-colors shrink-0 ${rule.enabled ? 'bg-indigo-600' : 'bg-[#2a2a3a]'}`}
                 title={rule.enabled ? 'Enabled — click to disable' : 'Disabled — click to enable'}
               >
                 <span className={`block w-3 h-3 bg-white rounded-full mx-auto transition-transform ${rule.enabled ? 'translate-x-1.5' : '-translate-x-1.5'}`} />
               </button>
               <div className="flex-1 min-w-0">
-                <span className="text-white text-sm font-medium">{rule.name}</span>
+                <span className="text-slate-100 text-sm font-medium">{rule.name}</span>
                 <span className="ml-2 text-slate-400 text-xs">after {delayLabel(rule)}</span>
               </div>
-              <span className={`text-xs px-2 py-0.5 rounded shrink-0 ${rule.action === 'delete' ? 'bg-red-900 text-red-300' : 'bg-blue-900 text-blue-300'}`}>
+              <span className={`text-xs px-2 py-0.5 rounded-full shrink-0 ${rule.action === 'delete' ? 'bg-red-900/60 text-red-300' : 'bg-blue-900/60 text-blue-300'}`}>
                 {rule.action}
               </span>
-              <span className={`text-xs px-2 py-0.5 rounded shrink-0 ${rule.targets.length === 0 ? 'bg-slate-700 text-slate-500' : 'bg-indigo-950 text-indigo-300'}`}>
+              <span className={`text-xs px-2 py-0.5 rounded-full shrink-0 ${rule.targets.length === 0 ? 'bg-[#2a2a3a] text-slate-500' : 'bg-indigo-950 text-indigo-300'}`}>
                 {targetsLabel(rule)}
               </span>
-              <button onClick={() => handleEditRule(rule)} className="text-slate-400 hover:text-white text-sm shrink-0" title="Edit">&#9999;</button>
-              <button onClick={() => handleDeleteRule(rule.id)} className="text-slate-400 hover:text-red-400 text-sm shrink-0" title="Delete">&times;</button>
+              <button onClick={() => handleEditRule(rule)} className="text-slate-400 hover:text-white text-sm shrink-0">&#9999;</button>
+              <button onClick={() => handleDeleteRule(rule.id)} className="text-slate-400 hover:text-red-400 text-sm shrink-0">&times;</button>
             </div>
           ))}
         </div>
       </section>
 
-      <hr className="border-slate-700" />
+      <hr className="border-[#2a2a3a]" />
 
       {/* Queue section */}
       <section>
         <div className="flex items-center justify-between mb-3">
-          <h2 className="text-lg font-semibold text-white">Deletion Queue</h2>
+          <h2 className="text-lg font-semibold text-slate-100">Deletion Queue</h2>
           <div className="flex gap-2">
-            <button
-              onClick={handleEvaluate}
-              disabled={evaluating}
-              className="px-3 py-1.5 text-xs bg-slate-700 hover:bg-slate-600 text-white rounded disabled:opacity-50"
-            >
+            <button onClick={handleEvaluate} disabled={evaluating} className="px-3 py-1.5 text-xs bg-white/5 hover:bg-white/10 text-slate-300 rounded-lg disabled:opacity-50">
               {evaluating ? 'Evaluating…' : 'Re-evaluate'}
             </button>
-            <button
-              onClick={handleTrigger}
-              disabled={triggering}
-              className="px-3 py-1.5 text-xs bg-amber-700 hover:bg-amber-600 text-white rounded disabled:opacity-50"
-            >
+            <button onClick={handleTrigger} disabled={triggering} className="px-3 py-1.5 text-xs bg-amber-700/80 hover:bg-amber-600/80 text-white rounded-lg disabled:opacity-50">
               {triggering ? 'Running…' : 'Run overdue'}
             </button>
           </div>
@@ -335,7 +252,7 @@ export function RulesPanel() {
             <button
               key={f}
               onClick={() => setQueueFilter(f)}
-              className={`px-3 py-1 text-xs rounded ${queueFilter === f ? 'bg-indigo-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}
+              className={`px-3 py-1 text-xs rounded-lg ${queueFilter === f ? 'bg-indigo-600 text-white' : 'bg-white/5 text-slate-300 hover:bg-white/10'}`}
             >
               {f} ({queueCounts[f]})
             </button>
@@ -348,9 +265,9 @@ export function RulesPanel() {
 
         <div className="space-y-2">
           {filteredQueue.map(item => (
-            <div key={item.id} className="flex items-center gap-3 bg-slate-800 rounded-lg px-4 py-3">
+            <div key={item.id} className="flex items-center gap-3 rounded-xl border border-[#2a2a3a] bg-[#1c1c28] px-4 py-3">
               <div className="flex-1 min-w-0">
-                <span className="text-white text-sm">{item.title}</span>
+                <span className="text-slate-100 text-sm">{item.title}</span>
                 {item.granularity === 'episode' && item.seasonNumber != null && item.episodeNumber != null && (
                   <span className="ml-1 text-slate-400 text-xs">S{String(item.seasonNumber).padStart(2, '0')}E{String(item.episodeNumber).padStart(2, '0')}</span>
                 )}
@@ -360,23 +277,11 @@ export function RulesPanel() {
                 <span className="ml-2 text-slate-500 text-xs">{item.ruleName}</span>
               </div>
               <span className="text-slate-400 text-xs">{formatScheduled(item.scheduledAt)}</span>
-              <span className={`text-xs px-2 py-0.5 rounded ${STATUS_CHIP[item.status]}`}>{item.status}</span>
+              <span className={`text-xs px-2 py-0.5 rounded-full ${STATUS_CHIP[item.status]}`}>{item.status}</span>
               {item.status === 'pending' && (
                 <>
-                  <button
-                    onClick={() => handleExecuteItem(item.id)}
-                    className="text-xs px-2 py-0.5 bg-amber-700 hover:bg-amber-600 text-white rounded"
-                    title="Execute now"
-                  >
-                    Trigger
-                  </button>
-                  <button
-                    onClick={() => handleCancelItem(item.id)}
-                    className="text-slate-400 hover:text-red-400 text-xs"
-                    title="Cancel"
-                  >
-                    &times;
-                  </button>
+                  <button onClick={() => handleExecuteItem(item.id)} className="text-xs px-2 py-0.5 bg-amber-700/80 hover:bg-amber-600/80 text-white rounded-lg">Trigger</button>
+                  <button onClick={() => handleCancelItem(item.id)} className="text-slate-400 hover:text-red-400 text-xs">&times;</button>
                 </>
               )}
             </div>
