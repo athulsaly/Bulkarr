@@ -43,8 +43,8 @@ export function HistoryDrawer({ open, onClose }: Props) {
   return (
     <>
       {open && <div className="fixed inset-0 z-30 bg-black/50" onClick={onClose} />}
-      <div className={`fixed top-0 left-0 z-40 h-full w-96 bg-slate-800 border-r border-slate-700 shadow-xl transform transition-transform duration-200 flex flex-col ${open ? 'translate-x-0' : '-translate-x-full'}`}>
-        <div className="flex items-center justify-between px-4 py-3 border-b border-slate-700 shrink-0">
+      <div className={`fixed top-0 left-0 z-40 h-full w-96 bg-[#1c1c28] border-r border-[#2a2a3a] shadow-xl transform transition-transform duration-200 flex flex-col ${open ? 'translate-x-0' : '-translate-x-full'}`}>
+        <div className="flex items-center justify-between px-4 py-3 border-b border-[#2a2a3a] shrink-0">
           <span className="font-semibold text-sm">Added History</span>
           <div className="flex items-center gap-2">
             {history.length > 0 && (
@@ -55,12 +55,12 @@ export function HistoryDrawer({ open, onClose }: Props) {
         </div>
 
         {/* Filter tabs */}
-        <div className="flex border-b border-slate-700 shrink-0">
+        <div className="flex border-b border-[#2a2a3a] shrink-0">
           {(['all', 'movies', 'series'] as const).map(t => (
             <button
               key={t}
               onClick={() => setFilter(t)}
-              className={`flex-1 py-2 text-xs font-medium capitalize transition-colors ${filter === t ? 'text-orange-400 border-b-2 border-orange-400' : 'text-slate-500 hover:text-slate-300'}`}
+              className={`flex-1 py-2 text-xs font-medium capitalize transition-colors ${filter === t ? 'text-indigo-400 border-b-2 border-indigo-400' : 'text-slate-500 hover:text-slate-300'}`}
             >
               {t === 'all' ? `All (${history.length})` : `${t.charAt(0).toUpperCase() + t.slice(1)} (${history.filter(h => h.target === t).length})`}
             </button>
@@ -73,8 +73,8 @@ export function HistoryDrawer({ open, onClose }: Props) {
             <p className="text-center text-slate-600 text-sm py-12">No history yet</p>
           )}
           {visible.map(item => (
-            <div key={item.id} className="flex items-center gap-3 px-4 py-2.5 border-b border-slate-700/50 hover:bg-slate-700/30 group">
-              <div className="w-8 h-12 bg-slate-700 rounded overflow-hidden shrink-0 relative">
+            <div key={item.id} className="flex items-center gap-3 px-4 py-2.5 border-b border-[#2a2a3a]/50 hover:bg-white/5 group">
+              <div className="w-8 h-12 bg-[#2a2a3a] rounded overflow-hidden shrink-0 relative">
                 {item.remotePoster ? (
                   <Image src={item.remotePoster} alt={item.title} fill sizes="32px" className="object-cover" unoptimized />
                 ) : (

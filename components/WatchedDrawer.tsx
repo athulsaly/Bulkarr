@@ -25,7 +25,7 @@ const SERVER_BADGE: Record<MediaServerType, { label: string; cls: string }> = {
 const MATCH_CHIP: Record<WatchedEvent['matchStatus'], { label: string; cls: string }> = {
   matched:   { label: '→ Matched',  cls: 'bg-green-800 text-green-200' },
   unmatched: { label: 'Unmatched',  cls: 'bg-red-900 text-red-300' },
-  pending:   { label: 'Pending',    cls: 'bg-slate-700 text-slate-400' },
+  pending:   { label: 'Pending',    cls: 'bg-white/10 text-slate-400' },
 }
 
 type Filter = 'all' | 'jellyfin' | 'plex' | 'movies' | 'episodes'
@@ -124,8 +124,8 @@ export function WatchedDrawer({ open, onClose, onUnmatchedCountChange }: Props) 
   return (
     <>
       {open && <div className="fixed inset-0 z-30 bg-black/50" onClick={onClose} />}
-      <div className={`fixed top-0 left-0 z-40 h-full w-[26rem] bg-slate-800 border-r border-slate-700 shadow-xl transform transition-transform duration-200 flex flex-col ${open ? 'translate-x-0' : '-translate-x-full'}`}>
-        <div className="flex items-center justify-between px-4 py-3 border-b border-slate-700 shrink-0">
+      <div className={`fixed top-0 left-0 z-40 h-full w-[26rem] bg-[#1c1c28] border-r border-[#2a2a3a] shadow-xl transform transition-transform duration-200 flex flex-col ${open ? 'translate-x-0' : '-translate-x-full'}`}>
+        <div className="flex items-center justify-between px-4 py-3 border-b border-[#2a2a3a] shrink-0">
           <span className="font-semibold text-sm">Watched Events</span>
           <div className="flex items-center gap-2">
             {unmatchedCount > 0 && (
@@ -147,12 +147,12 @@ export function WatchedDrawer({ open, onClose, onUnmatchedCountChange }: Props) 
           </div>
         </div>
 
-        <div className="flex border-b border-slate-700 shrink-0 overflow-x-auto">
+        <div className="flex border-b border-[#2a2a3a] shrink-0 overflow-x-auto">
           {TABS.map(t => (
             <button
               key={t.key}
               onClick={() => setFilter(t.key)}
-              className={`shrink-0 px-3 py-2 text-xs font-medium whitespace-nowrap transition-colors ${filter === t.key ? 'text-orange-400 border-b-2 border-orange-400' : 'text-slate-500 hover:text-slate-300'}`}
+              className={`shrink-0 px-3 py-2 text-xs font-medium whitespace-nowrap transition-colors ${filter === t.key ? 'text-indigo-400 border-b-2 border-indigo-400' : 'text-slate-500 hover:text-slate-300'}`}
             >
               {t.label}
             </button>
@@ -168,7 +168,7 @@ export function WatchedDrawer({ open, onClose, onUnmatchedCountChange }: Props) 
             const badge = SERVER_BADGE[ev.mediaServer]
             const chip = MATCH_CHIP[ev.matchStatus]
             return (
-              <div key={ev.id} className="flex items-start gap-3 px-4 py-3 border-b border-slate-700/50 hover:bg-slate-700/30 group">
+              <div key={ev.id} className="flex items-start gap-3 px-4 py-3 border-b border-[#2a2a3a]/50 hover:bg-white/5 group">
                 <span className={`shrink-0 w-5 h-5 rounded-full text-xs font-bold flex items-center justify-center mt-0.5 ${badge.cls}`}>
                   {badge.label}
                 </span>
@@ -199,7 +199,7 @@ export function WatchedDrawer({ open, onClose, onUnmatchedCountChange }: Props) 
                     className={`text-xs px-1.5 py-0.5 rounded ${
                       executing[ev.id] === 'done' ? 'bg-green-800 text-green-200' :
                       executing[ev.id] === 'error' ? 'bg-red-900 text-red-300' :
-                      executing[ev.id] === 'noop' ? 'bg-slate-700 text-slate-400' :
+                      executing[ev.id] === 'noop' ? 'bg-white/10 text-slate-400' :
                       'bg-amber-700 hover:bg-amber-600 text-white'
                     } disabled:opacity-50`}
                   >

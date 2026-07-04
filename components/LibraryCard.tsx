@@ -23,12 +23,12 @@ interface Props {
 export function LibraryCard({ item, selected, onToggleSelect, onAssign, onUnassign }: Props) {
   return (
     <div
-      className={`flex flex-col rounded-lg bg-slate-800 overflow-hidden border transition-colors ${
-        selected ? 'border-orange-500' : 'border-slate-700'
+      className={`flex flex-col rounded-lg bg-[#1c1c28] overflow-hidden border transition-colors ${
+        selected ? 'border-indigo-500' : 'border-[#2a2a3a]'
       }`}
     >
       {/* Poster */}
-      <div className="relative bg-slate-700" style={{ aspectRatio: '2/3' }}>
+      <div className="relative bg-[#2a2a3a]" style={{ aspectRatio: '2/3' }}>
         {item.posterUrl ? (
           <Image
             src={item.posterUrl}
@@ -50,12 +50,12 @@ export function LibraryCard({ item, selected, onToggleSelect, onAssign, onUnassi
             type="checkbox"
             checked={selected}
             onChange={onToggleSelect}
-            className="w-4 h-4 accent-orange-500"
+            className="w-4 h-4 accent-indigo-500"
           />
         </label>
 
         <span
-          className={`absolute top-2 right-2 w-2.5 h-2.5 rounded-full border border-slate-900/50 ${
+          className={`absolute top-2 right-2 w-2.5 h-2.5 rounded-full border border-[#0f0f12]/50 ${
             item.monitored ? 'bg-green-400' : 'bg-slate-500'
           }`}
           title={item.monitored ? 'Monitored' : 'Unmonitored'}
@@ -68,7 +68,7 @@ export function LibraryCard({ item, selected, onToggleSelect, onAssign, onUnassi
         )}
 
         {item.sizeOnDisk > 0 && (
-          <span className="absolute bottom-2 right-2 text-xs bg-slate-900/80 text-slate-300 px-1.5 py-0.5 rounded">
+          <span className="absolute bottom-2 right-2 text-xs bg-[#0f0f12]/80 text-slate-300 px-1.5 py-0.5 rounded">
             {formatSize(item.sizeOnDisk)}
           </span>
         )}

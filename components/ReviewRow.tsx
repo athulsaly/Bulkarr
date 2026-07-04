@@ -13,7 +13,7 @@ interface Props {
 }
 
 const STATUS_CLASSES: Record<IReviewRow['status'], string> = {
-  pending:    'bg-slate-700 text-slate-300',
+  pending:    'bg-white/10 text-slate-300',
   matched:    'bg-blue-800 text-blue-200',
   no_match:   'bg-red-900 text-red-300',
   in_library: 'bg-yellow-800 text-yellow-200',
@@ -34,16 +34,16 @@ export function ReviewRowComponent({ row, defaults, cache, target, onUpdate, onD
   const match = row.candidates[row.selectedIndex]
   const profiles = (target === 'movies' ? cache.radarr?.profiles : cache.sonarr?.profiles) ?? []
   const rootFolders = (target === 'movies' ? cache.radarr?.rootFolders : cache.sonarr?.rootFolders) ?? []
-  const sel = 'text-xs rounded bg-slate-700 border border-slate-600 px-1.5 py-0.5 focus:outline-none'
+  const sel = 'text-xs rounded bg-white/5 border border-white/10 px-1.5 py-0.5 focus:outline-none'
 
   return (
-    <div style={style} className="flex items-start gap-2 px-4 py-2 border-b border-slate-800 hover:bg-slate-800/50 text-sm">
+    <div style={style} className="flex items-start gap-2 px-4 py-2 border-b border-[#2a2a3a] hover:bg-white/5 text-sm">
       <input
         type="checkbox"
         checked={row.included}
         disabled={row.status === 'no_match' || row.status === 'in_library'}
         onChange={e => onUpdate({ included: e.target.checked })}
-        className="mt-1 accent-orange-500 shrink-0 disabled:opacity-30 disabled:cursor-not-allowed"
+        className="mt-1 accent-indigo-500 shrink-0 disabled:opacity-30 disabled:cursor-not-allowed"
       />
 
       <span className="w-36 shrink-0 truncate text-slate-300 text-xs" title={row.inputText}>

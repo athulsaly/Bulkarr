@@ -25,11 +25,11 @@ function ServiceFields({ label, name, url, apiKey, onUrlChange, onApiKeyChange, 
     setResult(r)
   }
 
-  const input = 'w-full rounded bg-slate-700 border border-slate-600 px-3 py-2 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-orange-500'
+  const input = 'w-full rounded bg-white/5 border border-white/10 px-3 py-2 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-indigo-500/60'
 
   return (
     <div className="space-y-3">
-      <h3 className="text-sm font-semibold text-orange-400 uppercase tracking-wide">{label}</h3>
+      <h3 className="text-sm font-semibold text-indigo-400 uppercase tracking-wide">{label}</h3>
       <div>
         <label className="block text-xs text-slate-400 mb-1">URL</label>
         <input
@@ -52,7 +52,7 @@ function ServiceFields({ label, name, url, apiKey, onUrlChange, onApiKeyChange, 
       <button
         onClick={handleTest}
         disabled={!url || !apiKey || testing}
-        className="rounded bg-slate-700 hover:bg-slate-600 disabled:opacity-40 disabled:cursor-not-allowed px-3 py-1.5 text-xs transition-colors"
+        className="rounded bg-white/5 hover:bg-white/10 disabled:opacity-40 disabled:cursor-not-allowed px-3 py-1.5 text-xs transition-colors"
       >
         {testing ? 'Testing…' : 'Test Connection'}
       </button>
@@ -116,10 +116,10 @@ export function SetupScreen({ hook, onComplete }: Props) {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-900 px-4">
-      <div className="w-full max-w-md rounded-xl bg-slate-800 border border-slate-700 shadow-2xl">
-        <div className="px-6 py-5 border-b border-slate-700">
-          <h1 className="text-xl font-bold text-orange-500">Welcome to Bulkarr</h1>
+    <div className="flex min-h-screen items-center justify-center bg-[#0f0f12] px-4">
+      <div className="w-full max-w-md rounded-xl bg-[#1c1c28] border border-[#2a2a3a] shadow-2xl">
+        <div className="px-6 py-5 border-b border-[#2a2a3a]">
+          <h1 className="text-xl font-bold text-indigo-400">Welcome to Bulkarr</h1>
           <p className="text-sm text-slate-400 mt-1">Connect at least one service to get started.</p>
         </div>
 
@@ -134,7 +134,7 @@ export function SetupScreen({ hook, onComplete }: Props) {
             onTest={makeTestFn('radarr', radarrUrl, radarrKey)}
             testing={hook.testing === 'radarr'}
           />
-          <hr className="border-slate-700" />
+          <hr className="border-[#2a2a3a]" />
           <ServiceFields
             label="Sonarr"
             name="sonarr"
@@ -145,9 +145,9 @@ export function SetupScreen({ hook, onComplete }: Props) {
             onTest={makeTestFn('sonarr', sonarrUrl, sonarrKey)}
             testing={hook.testing === 'sonarr'}
           />
-          <hr className="border-slate-700" />
+          <hr className="border-[#2a2a3a]" />
           <div className="space-y-3">
-            <h3 className="text-sm font-semibold text-orange-400 uppercase tracking-wide">TMDB <span className="text-slate-500 normal-case font-normal">(optional)</span></h3>
+            <h3 className="text-sm font-semibold text-indigo-400 uppercase tracking-wide">TMDB <span className="text-slate-500 normal-case font-normal">(optional)</span></h3>
             <p className="text-xs text-slate-500">Enables poster card layout for search results.</p>
             <div>
               <label className="block text-xs text-slate-400 mb-1">API Key</label>
@@ -156,7 +156,7 @@ export function SetupScreen({ hook, onComplete }: Props) {
                 value={tmdbKey}
                 onChange={e => setTmdbKey(e.target.value)}
                 placeholder="Paste your TMDB API key"
-                className="w-full rounded bg-slate-700 border border-slate-600 px-3 py-2 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-orange-500"
+                className="w-full rounded bg-white/5 border border-white/10 px-3 py-2 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-indigo-500/60"
               />
             </div>
           </div>
@@ -166,7 +166,7 @@ export function SetupScreen({ hook, onComplete }: Props) {
           <button
             onClick={handleSave}
             disabled={saving}
-            className="w-full flex items-center justify-center gap-2 rounded bg-orange-600 hover:bg-orange-500 disabled:opacity-50 py-2 font-semibold text-sm transition-colors"
+            className="w-full flex items-center justify-center gap-2 rounded bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 py-2 font-semibold text-sm transition-colors"
           >
             {saving && <Spinner className="w-4 h-4" />}
             {saving ? 'Saving…' : 'Save & Continue'}

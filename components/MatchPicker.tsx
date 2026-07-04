@@ -14,7 +14,7 @@ export function MatchPicker({ candidates, selectedIndex, onChange, className }: 
     <select
       value={selectedIndex}
       onChange={e => onChange(Number(e.target.value))}
-      className={className ?? 'text-xs rounded bg-slate-700 border border-slate-600 px-1.5 py-0.5 focus:outline-none focus:border-orange-500 max-w-[180px]'}
+      className={className ?? 'text-xs rounded bg-white/5 border border-white/10 px-1.5 py-0.5 focus:outline-none focus:border-indigo-500/60 max-w-[180px]'}
     >
       {candidates.map((c, i) => (
         <option key={i} value={i}>{c.title} {c.year ? `(${c.year})` : ''}</option>

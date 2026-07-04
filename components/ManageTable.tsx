@@ -40,14 +40,14 @@ export function ManageTable({ rows, selectedIds, onToggleSelect, onSelectAll, on
   if (!rows.length) return null
 
   const header = (
-    <div className="flex items-center gap-2 px-4 py-1.5 bg-slate-900 border-b border-slate-700 text-xs text-slate-500 uppercase tracking-wide sticky top-0 z-10">
+    <div className="flex items-center gap-2 px-4 py-1.5 bg-[#0f0f12] border-b border-[#2a2a3a] text-xs text-slate-500 uppercase tracking-wide sticky top-0 z-10">
       <input
         ref={selectAllRef}
         type="checkbox"
         checked={allSelected}
         disabled={matchedRows.length === 0}
         onChange={onSelectAll}
-        className="accent-orange-500 shrink-0 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+        className="accent-indigo-500 shrink-0 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
         title="Select all matched"
       />
       <span className="w-36 shrink-0">Input</span>
@@ -58,7 +58,7 @@ export function ManageTable({ rows, selectedIds, onToggleSelect, onSelectAll, on
 
   if (!shouldVirtualize) {
     return (
-      <div className="border-t border-slate-700">
+      <div className="border-t border-[#2a2a3a]">
         {header}
         {rows.map(row => (
           <ManageRowComponent
@@ -75,7 +75,7 @@ export function ManageTable({ rows, selectedIds, onToggleSelect, onSelectAll, on
   }
 
   return (
-    <div className="border-t border-slate-700 flex flex-col" style={{ height: '60vh' }}>
+    <div className="border-t border-[#2a2a3a] flex flex-col" style={{ height: '60vh' }}>
       {header}
       <div ref={parentRef} className="flex-1 overflow-auto">
         <div style={{ height: virtualizer.getTotalSize(), position: 'relative' }}>

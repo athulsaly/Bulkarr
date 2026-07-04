@@ -13,7 +13,7 @@ interface Props {
 }
 
 const STATUS_CLASSES: Record<ReviewRow['status'], string> = {
-  pending:    'bg-slate-700 text-slate-300',
+  pending:    'bg-white/10 text-slate-300',
   matched:    'bg-blue-800 text-blue-200',
   no_match:   'bg-red-900 text-red-300',
   in_library: 'bg-yellow-800 text-yellow-200',
@@ -34,12 +34,12 @@ export function ReviewCard({ row, defaults, cache, target, onUpdate, onDelete }:
   const match = row.candidates[row.selectedIndex]
   const profiles = (target === 'movies' ? cache.radarr?.profiles : cache.sonarr?.profiles) ?? []
   const rootFolders = (target === 'movies' ? cache.radarr?.rootFolders : cache.sonarr?.rootFolders) ?? []
-  const sel = 'w-full text-xs rounded bg-slate-700 border border-slate-600 px-1.5 py-1 focus:outline-none focus:border-orange-500'
+  const sel = 'w-full text-xs rounded bg-white/5 border border-white/10 px-1.5 py-1 focus:outline-none focus:border-indigo-500/60'
 
   return (
-    <div className={`flex flex-col rounded-lg bg-slate-800 border overflow-hidden transition-opacity ${row.included ? 'border-slate-600' : 'border-slate-700/50 opacity-50'}`}>
+    <div className={`flex flex-col rounded-lg bg-[#1c1c28] border overflow-hidden transition-opacity ${row.included ? 'border-[#2a2a3a]' : 'border-[#2a2a3a]/50 opacity-50'}`}>
       {/* Poster */}
-      <div className="relative bg-slate-700" style={{ aspectRatio: '2/3' }}>
+      <div className="relative bg-[#2a2a3a]" style={{ aspectRatio: '2/3' }}>
         {match?.remotePoster ? (
           <Image
             src={match.remotePoster}
@@ -63,7 +63,7 @@ export function ReviewCard({ row, defaults, cache, target, onUpdate, onDelete }:
             checked={row.included}
             disabled={row.status === 'no_match' || row.status === 'in_library'}
             onChange={e => onUpdate({ included: e.target.checked })}
-            className="w-4 h-4 accent-orange-500 disabled:opacity-30 disabled:cursor-not-allowed"
+            className="w-4 h-4 accent-indigo-500 disabled:opacity-30 disabled:cursor-not-allowed"
           />
         </label>
 
@@ -75,7 +75,7 @@ export function ReviewCard({ row, defaults, cache, target, onUpdate, onDelete }:
         {/* Delete bottom-right */}
         <button
           onClick={onDelete}
-          className="absolute bottom-2 right-2 bg-slate-900/70 hover:bg-red-900/80 text-slate-400 hover:text-white rounded px-1.5 py-0.5 text-xs leading-none transition-colors"
+          className="absolute bottom-2 right-2 bg-[#0f0f12]/70 hover:bg-red-900/80 text-slate-400 hover:text-white rounded px-1.5 py-0.5 text-xs leading-none transition-colors"
         >
           ×
         </button>
@@ -93,7 +93,7 @@ export function ReviewCard({ row, defaults, cache, target, onUpdate, onDelete }:
             candidates={row.candidates}
             selectedIndex={row.selectedIndex}
             onChange={i => onUpdate({ selectedIndex: i })}
-            className="w-full text-xs rounded bg-slate-700 border border-slate-600 px-1.5 py-0.5 focus:outline-none focus:border-orange-500"
+            className="w-full text-xs rounded bg-white/5 border border-white/10 px-1.5 py-0.5 focus:outline-none focus:border-indigo-500/60"
           />
         )}
 

@@ -13,7 +13,7 @@ interface Props {
 }
 
 const STATUS_CLASSES: Record<IManageRow['status'], string> = {
-  pending:  'bg-slate-700 text-slate-300',
+  pending:  'bg-white/10 text-slate-300',
   matched:  'bg-blue-800 text-blue-200',
   no_match: 'bg-red-900 text-red-300',
   done:     'bg-green-800 text-green-200',
@@ -33,13 +33,13 @@ export function ManageRowComponent({ row, selected, onToggleSelect, onUpdate, on
   const candidatesAsArrItems = row.libraryMatches as unknown as ArrItem[]
 
   return (
-    <div style={style} className="flex items-center gap-2 px-4 py-2 border-b border-slate-800 hover:bg-slate-800/50 text-sm">
+    <div style={style} className="flex items-center gap-2 px-4 py-2 border-b border-[#2a2a3a] hover:bg-white/5 text-sm">
       <input
         type="checkbox"
         checked={selected}
         disabled={row.status !== 'matched'}
         onChange={onToggleSelect}
-        className="accent-orange-500 shrink-0 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+        className="accent-indigo-500 shrink-0 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
       />
 
       <span className="w-36 shrink-0 truncate text-slate-300 text-xs" title={row.inputText}>
@@ -73,7 +73,7 @@ export function ManageRowComponent({ row, selected, onToggleSelect, onUpdate, on
           <select
             value={row.action}
             onChange={e => onUpdate({ action: e.target.value as IManageRow['action'] })}
-            className="text-xs rounded bg-slate-700 border border-slate-600 px-1.5 py-0.5 focus:outline-none"
+            className="text-xs rounded bg-white/5 border border-white/10 px-1.5 py-0.5 focus:outline-none"
           >
             <option value="remove">Remove</option>
             <option value="unmonitor">Unmonitor</option>

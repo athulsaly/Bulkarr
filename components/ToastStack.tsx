@@ -9,7 +9,7 @@ interface Props {
 const kindClass: Record<Toast['kind'], string> = {
   success: 'bg-green-700 border-green-500',
   error: 'bg-red-800 border-red-500',
-  info: 'bg-slate-700 border-slate-500',
+  info: 'bg-[#1c1c28] border-[#2a2a3a]',
 }
 
 export function ToastStack({ toasts, dismiss }: Props) {

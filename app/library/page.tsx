@@ -1,6 +1,5 @@
 'use client'
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
-import Link from 'next/link'
 import { Spinner } from '@/components/Spinner'
 import { LibraryCard } from '@/components/LibraryCard'
 import type { LibraryItemFull, AutoDeleteRule } from '@/lib/types'
@@ -306,19 +305,9 @@ export default function LibraryPage() {
   const filterCount = activeFilterCount(filters)
 
   return (
-    <div className="flex flex-col min-h-screen bg-slate-900 text-slate-100">
-      {/* Header */}
-      <header className="flex items-center gap-3 px-6 py-3 border-b border-slate-700 bg-slate-800 shrink-0">
-        <Link href="/" className="text-sm text-slate-400 hover:text-white transition-colors">
-          ← Back
-        </Link>
-        <span className="font-bold text-orange-500 tracking-tight">Bulkarr</span>
-        <span className="text-slate-600">/</span>
-        <h1 className="text-white font-semibold">Library</h1>
-      </header>
-
+    <div className="flex flex-col h-full text-slate-100">
       {/* Controls */}
-      <div className="flex flex-wrap items-center gap-2 px-4 py-3 border-b border-slate-700 bg-slate-850 shrink-0">
+      <div className="flex flex-wrap items-center gap-2 px-4 py-3 border-b border-[#2a2a3a] bg-[#161620] shrink-0">
         {/* Target tabs */}
         <div className="flex gap-1 shrink-0">
           {(['movies', 'series'] as const).map(t => (
@@ -326,7 +315,7 @@ export default function LibraryPage() {
               key={t}
               onClick={() => setTarget(t)}
               className={`px-3 py-1.5 text-sm rounded capitalize transition-colors ${
-                target === t ? 'bg-orange-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                target === t ? 'bg-indigo-600 text-white' : 'bg-white/5 text-slate-300 hover:bg-white/10'
               }`}
             >
               {t}
@@ -334,7 +323,7 @@ export default function LibraryPage() {
           ))}
         </div>
 
-        <div className="w-px h-5 bg-slate-700 mx-1 hidden sm:block" />
+        <div className="w-px h-5 bg-[#2a2a3a] mx-1 hidden sm:block" />
 
         {/* Search */}
         <input
@@ -342,14 +331,14 @@ export default function LibraryPage() {
           placeholder="Search…"
           value={search}
           onChange={e => setSearch(e.target.value)}
-          className="bg-slate-800 text-sm rounded px-3 py-1.5 border border-slate-700 focus:outline-none focus:border-orange-500 w-44 text-white placeholder-slate-500"
+          className="bg-[#1c1c28] text-sm rounded px-3 py-1.5 border border-[#2a2a3a] focus:outline-none focus:border-indigo-500/60 w-44 text-white placeholder-slate-500"
         />
 
         {/* Sort */}
         <select
           value={sort}
           onChange={e => setSort(e.target.value as SortKey)}
-          className="bg-slate-800 text-sm rounded px-3 py-1.5 border border-slate-700 focus:outline-none focus:border-orange-500 text-slate-200"
+          className="bg-[#1c1c28] text-sm rounded px-3 py-1.5 border border-[#2a2a3a] focus:outline-none focus:border-indigo-500/60 text-slate-200"
         >
           {(Object.entries(SORT_LABELS) as [SortKey, string][]).map(([k, label]) => (
             <option key={k} value={k}>{label}</option>
@@ -361,13 +350,13 @@ export default function LibraryPage() {
           onClick={() => setFiltersOpen(o => !o)}
           className={`flex items-center gap-1.5 px-3 py-1.5 text-sm rounded transition-colors ${
             filterCount > 0 || filtersOpen
-              ? 'bg-orange-700 text-white'
-              : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+              ? 'bg-indigo-700 text-white'
+              : 'bg-white/5 text-slate-300 hover:bg-white/10'
           }`}
         >
           Filters
           {filterCount > 0 && (
-            <span className="bg-orange-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center leading-none">
+            <span className="bg-indigo-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center leading-none">
               {filterCount}
             </span>
           )}
@@ -378,14 +367,14 @@ export default function LibraryPage() {
           <button
             onClick={() => setView('list')}
             title="List view"
-            className={`px-2.5 py-1.5 text-sm rounded transition-colors ${view === 'list' ? 'bg-slate-600 text-white' : 'text-slate-400 hover:text-white'}`}
+            className={`px-2.5 py-1.5 text-sm rounded transition-colors ${view === 'list' ? 'bg-white/10 text-white' : 'text-slate-400 hover:text-white'}`}
           >
             ☰
           </button>
           <button
             onClick={() => setView('cards')}
             title="Card view"
-            className={`px-2.5 py-1.5 text-sm rounded transition-colors ${view === 'cards' ? 'bg-slate-600 text-white' : 'text-slate-400 hover:text-white'}`}
+            className={`px-2.5 py-1.5 text-sm rounded transition-colors ${view === 'cards' ? 'bg-white/10 text-white' : 'text-slate-400 hover:text-white'}`}
           >
             ⊞
           </button>
@@ -394,7 +383,7 @@ export default function LibraryPage() {
         <button
           onClick={loadLibrary}
           disabled={loading}
-          className="flex items-center gap-1.5 text-xs px-3 py-1.5 bg-slate-700 hover:bg-slate-600 rounded disabled:opacity-50 transition-colors shrink-0"
+          className="flex items-center gap-1.5 text-xs px-3 py-1.5 bg-white/5 hover:bg-white/10 rounded disabled:opacity-50 transition-colors shrink-0"
         >
           {loading ? <Spinner className="w-3 h-3" /> : null}
           Refresh
@@ -403,13 +392,13 @@ export default function LibraryPage() {
 
       {/* Filter panel */}
       {filtersOpen && (
-        <div className="flex flex-wrap gap-3 px-4 py-3 border-b border-slate-700 bg-slate-800/50 shrink-0">
+        <div className="flex flex-wrap gap-3 px-4 py-3 border-b border-[#2a2a3a] bg-[#1c1c28]/50 shrink-0">
           <div className="flex items-center gap-2">
             <label className="text-xs text-slate-400">Monitored</label>
             <select
               value={filters.monitored}
               onChange={e => setFilter('monitored', e.target.value as Filters['monitored'])}
-              className="bg-slate-700 text-xs rounded px-2 py-1 border border-slate-600 text-slate-200"
+              className="bg-white/5 text-xs rounded px-2 py-1 border border-white/10 text-slate-200"
             >
               <option value="all">All</option>
               <option value="monitored">Monitored</option>
@@ -421,7 +410,7 @@ export default function LibraryPage() {
             <select
               value={filters.files}
               onChange={e => setFilter('files', e.target.value as Filters['files'])}
-              className="bg-slate-700 text-xs rounded px-2 py-1 border border-slate-600 text-slate-200"
+              className="bg-white/5 text-xs rounded px-2 py-1 border border-white/10 text-slate-200"
             >
               <option value="all">All</option>
               <option value="has-files">Has Files</option>
@@ -433,7 +422,7 @@ export default function LibraryPage() {
             <select
               value={filters.rule}
               onChange={e => setFilter('rule', e.target.value as Filters['rule'])}
-              className="bg-slate-700 text-xs rounded px-2 py-1 border border-slate-600 text-slate-200"
+              className="bg-white/5 text-xs rounded px-2 py-1 border border-white/10 text-slate-200"
             >
               <option value="all">All</option>
               <option value="has-rule">Has Specific Rule</option>
@@ -446,7 +435,7 @@ export default function LibraryPage() {
               <select
                 value={filters.profile}
                 onChange={e => setFilter('profile', e.target.value)}
-                className="bg-slate-700 text-xs rounded px-2 py-1 border border-slate-600 text-slate-200"
+                className="bg-white/5 text-xs rounded px-2 py-1 border border-white/10 text-slate-200"
               >
                 <option value="all">All</option>
                 {profiles.map(([id, name]) => (
@@ -461,7 +450,7 @@ export default function LibraryPage() {
               <select
                 value={filters.status}
                 onChange={e => setFilter('status', e.target.value)}
-                className="bg-slate-700 text-xs rounded px-2 py-1 border border-slate-600 text-slate-200"
+                className="bg-white/5 text-xs rounded px-2 py-1 border border-white/10 text-slate-200"
               >
                 <option value="all">All</option>
                 {statuses.map(s => (
@@ -473,7 +462,7 @@ export default function LibraryPage() {
           {filterCount > 0 && (
             <button
               onClick={() => setFilters(DEFAULT_FILTERS)}
-              className="text-xs text-orange-400 hover:text-orange-300 ml-1"
+              className="text-xs text-indigo-400 hover:text-indigo-300 ml-1"
             >
               Clear all
             </button>
@@ -506,7 +495,7 @@ export default function LibraryPage() {
         {/* ── LIST VIEW ── */}
         {view === 'list' && filtered.length > 0 && (
           <table className="w-full text-sm">
-            <thead className="bg-slate-800 border-b border-slate-700 sticky top-0 z-10">
+            <thead className="bg-[#1c1c28] border-b border-[#2a2a3a] sticky top-0 z-10">
               <tr>
                 <th className="px-4 py-2.5 w-10">
                   <input
@@ -514,7 +503,7 @@ export default function LibraryPage() {
                     type="checkbox"
                     checked={allSelected}
                     onChange={toggleAll}
-                    className="accent-orange-500 cursor-pointer"
+                    className="accent-indigo-500 cursor-pointer"
                   />
                 </th>
                 <th className="px-4 py-2.5 text-left text-slate-400 font-normal">Title</th>
@@ -532,8 +521,8 @@ export default function LibraryPage() {
               {filtered.map(item => (
                 <tr
                   key={item.id}
-                  className={`border-b border-slate-800/60 transition-colors ${
-                    selectedIds.has(item.id) ? 'bg-slate-800/60' : 'hover:bg-slate-800/30'
+                  className={`border-b border-[#2a2a3a]/60 transition-colors ${
+                    selectedIds.has(item.id) ? 'bg-[#1c1c28]/60' : 'hover:bg-white/5'
                   }`}
                 >
                   <td className="px-4 py-2.5">
@@ -541,7 +530,7 @@ export default function LibraryPage() {
                       type="checkbox"
                       checked={selectedIds.has(item.id)}
                       onChange={() => toggleItem(item.id)}
-                      className="accent-orange-500 cursor-pointer"
+                      className="accent-indigo-500 cursor-pointer"
                     />
                   </td>
                   <td className="px-4 py-2.5 text-white font-medium max-w-xs">
@@ -617,7 +606,7 @@ export default function LibraryPage() {
                   type="checkbox"
                   checked={allSelected}
                   onChange={toggleAll}
-                  className="accent-orange-500"
+                  className="accent-indigo-500"
                 />
                 Select all ({filtered.length})
               </label>
@@ -643,7 +632,7 @@ export default function LibraryPage() {
 
       {/* Batch footer */}
       {selectedCount > 0 && (
-        <footer className="sticky bottom-0 z-20 bg-slate-800 border-t border-slate-700 px-6 py-3 flex items-center gap-3 flex-wrap">
+        <footer className="sticky bottom-0 z-20 bg-[#1c1c28] border-t border-[#2a2a3a] px-6 py-3 flex items-center gap-3 flex-wrap">
           <span className="text-sm text-slate-400">{selectedCount} selected</span>
           <button
             onClick={() => openAssignFor(filtered.filter(i => selectedIds.has(i.id)))}
@@ -660,7 +649,7 @@ export default function LibraryPage() {
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
           onClick={e => { if (e.target === e.currentTarget) setAssignOpen(false) }}
         >
-          <div className="bg-slate-800 rounded-lg w-full max-w-md mx-4 shadow-xl flex flex-col max-h-[90vh]">
+          <div className="bg-[#1c1c28] rounded-xl w-full max-w-md mx-4 shadow-xl flex flex-col max-h-[90vh]">
             {/* Header */}
             <div className="px-5 pt-5 pb-3 shrink-0">
               <h2 className="text-white font-semibold">
@@ -672,7 +661,7 @@ export default function LibraryPage() {
             </div>
 
             {/* Tabs */}
-            <div className="flex border-b border-slate-700 shrink-0 px-5">
+            <div className="flex border-b border-[#2a2a3a] shrink-0 px-5">
               {(['pick', 'create'] as const).map(mode => (
                 <button
                   key={mode}
@@ -708,7 +697,7 @@ export default function LibraryPage() {
                         <label
                           key={r.id}
                           className={`flex items-start gap-3 cursor-pointer p-3 rounded transition-colors ${
-                            pickedRuleId === r.id ? 'bg-indigo-950 border border-indigo-700' : 'hover:bg-slate-700'
+                            pickedRuleId === r.id ? 'bg-indigo-950 border border-indigo-700' : 'hover:bg-white/10'
                           }`}
                         >
                           <input
@@ -747,7 +736,7 @@ export default function LibraryPage() {
                   <div>
                     <label className="text-xs text-slate-400 block mb-1">Rule name</label>
                     <input
-                      className="w-full bg-slate-700 text-white text-sm rounded px-3 py-1.5 border border-slate-600 focus:outline-none focus:border-indigo-500"
+                      className="w-full bg-white/5 text-white text-sm rounded px-3 py-1.5 border border-white/10 focus:outline-none focus:border-indigo-500/60"
                       value={newRuleForm.name}
                       onChange={e => setNewRuleForm(f => ({ ...f, name: e.target.value }))}
                       placeholder="e.g. Delete after watching"
@@ -759,7 +748,7 @@ export default function LibraryPage() {
                     <div>
                       <label className="text-xs text-slate-400 block mb-1">Action</label>
                       <select
-                        className="w-full bg-slate-700 text-white text-sm rounded px-3 py-1.5 border border-slate-600 focus:outline-none focus:border-indigo-500"
+                        className="w-full bg-white/5 text-white text-sm rounded px-3 py-1.5 border border-white/10 focus:outline-none focus:border-indigo-500/60"
                         value={newRuleForm.action}
                         onChange={e => setNewRuleForm(f => ({ ...f, action: e.target.value as 'delete' | 'unmonitor' }))}
                       >
@@ -772,7 +761,7 @@ export default function LibraryPage() {
                       <div>
                         <label className="text-xs text-slate-400 block mb-1">Granularity</label>
                         <select
-                          className="w-full bg-slate-700 text-white text-sm rounded px-3 py-1.5 border border-slate-600 focus:outline-none focus:border-indigo-500"
+                          className="w-full bg-white/5 text-white text-sm rounded px-3 py-1.5 border border-white/10 focus:outline-none focus:border-indigo-500/60"
                           value={newRuleForm.granularity}
                           onChange={e => setNewRuleForm(f => ({ ...f, granularity: e.target.value as 'episode' | 'season' }))}
                         >
@@ -787,7 +776,7 @@ export default function LibraryPage() {
                       <input
                         type="number"
                         min={1}
-                        className="w-full bg-slate-700 text-white text-sm rounded px-3 py-1.5 border border-slate-600 focus:outline-none focus:border-indigo-500"
+                        className="w-full bg-white/5 text-white text-sm rounded px-3 py-1.5 border border-white/10 focus:outline-none focus:border-indigo-500/60"
                         value={newRuleForm.delayAmount}
                         onChange={e => setNewRuleForm(f => ({ ...f, delayAmount: Math.max(1, Number(e.target.value)) }))}
                       />
@@ -796,7 +785,7 @@ export default function LibraryPage() {
                     <div>
                       <label className="text-xs text-slate-400 block mb-1">Unit</label>
                       <select
-                        className="w-full bg-slate-700 text-white text-sm rounded px-3 py-1.5 border border-slate-600 focus:outline-none focus:border-indigo-500"
+                        className="w-full bg-white/5 text-white text-sm rounded px-3 py-1.5 border border-white/10 focus:outline-none focus:border-indigo-500/60"
                         value={newRuleForm.delayUnit}
                         onChange={e => setNewRuleForm(f => ({ ...f, delayUnit: e.target.value as typeof DELAY_UNITS[number] }))}
                       >
@@ -825,7 +814,7 @@ export default function LibraryPage() {
             </div>
 
             {/* Footer */}
-            <div className="flex gap-2 px-5 py-4 border-t border-slate-700 shrink-0">
+            <div className="flex gap-2 px-5 py-4 border-t border-[#2a2a3a] shrink-0">
               {modalMode === 'pick' ? (
                 <>
                   <button
@@ -838,7 +827,7 @@ export default function LibraryPage() {
                   </button>
                   <button
                     onClick={() => setAssignOpen(false)}
-                    className="px-4 py-1.5 text-sm bg-slate-700 hover:bg-slate-600 rounded text-white transition-colors"
+                    className="px-4 py-1.5 text-sm bg-white/5 hover:bg-white/10 rounded text-white transition-colors"
                   >
                     Cancel
                   </button>
@@ -855,7 +844,7 @@ export default function LibraryPage() {
                   </button>
                   <button
                     onClick={() => setAssignOpen(false)}
-                    className="px-4 py-1.5 text-sm bg-slate-700 hover:bg-slate-600 rounded text-white transition-colors"
+                    className="px-4 py-1.5 text-sm bg-white/5 hover:bg-white/10 rounded text-white transition-colors"
                   >
                     Cancel
                   </button>
@@ -868,7 +857,7 @@ export default function LibraryPage() {
 
       {/* Toast */}
       {toast && (
-        <div className="fixed bottom-6 right-6 z-50 bg-slate-700 border border-slate-600 text-white text-sm px-4 py-2 rounded shadow-lg">
+        <div className="fixed bottom-6 right-6 z-50 bg-[#1c1c28] border border-[#2a2a3a] text-white text-sm px-4 py-2 rounded shadow-lg">
           {toast}
         </div>
       )}

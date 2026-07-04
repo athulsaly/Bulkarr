@@ -59,20 +59,20 @@ export function InputPanel({ value, onChange, onLookup, running }: Props) {
       <div className="flex items-center justify-between mb-1">
         <span className="text-xs text-slate-400">Paste titles — one per line or comma-separated</span>
         {count > 0 && (
-          <span className="text-xs bg-slate-700 text-slate-300 rounded px-2 py-0.5">{count} title{count !== 1 ? 's' : ''}</span>
+          <span className="text-xs bg-white/5 text-slate-300 rounded px-2 py-0.5">{count} title{count !== 1 ? 's' : ''}</span>
         )}
       </div>
       <textarea
         value={value}
         onChange={e => onChange(e.target.value)}
         placeholder={'Inception, The Dark Knight, Interstellar\n— or one per line'}
-        className="w-full h-40 rounded bg-slate-800 border border-slate-700 px-3 py-2 text-sm font-mono text-slate-100 placeholder-slate-600 resize-none focus:outline-none focus:border-orange-500"
+        className="w-full h-40 rounded bg-[#1c1c28] border border-[#2a2a3a] px-3 py-2 text-sm font-mono text-slate-100 placeholder-slate-600 resize-none focus:outline-none focus:border-indigo-500/60"
       />
       {running && (
         <div className="space-y-1">
           <p className="text-xs text-slate-500">Looking up…</p>
-          <div className="h-1.5 w-full bg-slate-700 rounded overflow-hidden">
-            <div className="h-full bg-orange-500 animate-shimmer" style={{ width: '40%' }} />
+          <div className="h-1.5 w-full bg-white/5 rounded overflow-hidden">
+            <div className="h-full bg-indigo-500 animate-shimmer" style={{ width: '40%' }} />
           </div>
         </div>
       )}
@@ -80,7 +80,7 @@ export function InputPanel({ value, onChange, onLookup, running }: Props) {
         <button
           onClick={onLookup}
           disabled={count === 0 || running}
-          className="flex items-center gap-2 rounded bg-orange-600 hover:bg-orange-500 disabled:opacity-40 disabled:cursor-not-allowed px-4 py-1.5 text-sm font-medium transition-colors"
+          className="flex items-center gap-2 rounded bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed px-4 py-1.5 text-sm font-medium transition-colors"
         >
           {running && <Spinner className="w-3.5 h-3.5" />}
           {running ? 'Looking up…' : 'Parse & Look Up'}
@@ -88,7 +88,7 @@ export function InputPanel({ value, onChange, onLookup, running }: Props) {
         <button
           onClick={() => fileInputRef.current?.click()}
           disabled={running}
-          className="rounded bg-slate-700 hover:bg-slate-600 disabled:opacity-40 disabled:cursor-not-allowed px-4 py-1.5 text-sm transition-colors"
+          className="rounded bg-white/5 hover:bg-white/10 disabled:opacity-40 disabled:cursor-not-allowed px-4 py-1.5 text-sm transition-colors"
         >
           Upload File
         </button>
