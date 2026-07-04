@@ -17,7 +17,10 @@ export default function DashboardPage() {
   const [data, setData] = useState<DashboardData | null>(null)
 
   useEffect(() => {
-    fetch('/api/dashboard').then(r => r.json()).then(setData)
+    fetch('/api/dashboard')
+      .then(r => r.json())
+      .then(setData)
+      .catch(() => setData({ movies: 0, series: 0, activeRules: 0, pendingQueue: 0, recentHistory: [] }))
   }, [])
 
   return (

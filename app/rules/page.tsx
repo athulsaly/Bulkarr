@@ -224,8 +224,8 @@ export default function RulesPage() {
               <span className={`text-xs px-2 py-0.5 rounded-full shrink-0 ${rule.targets.length === 0 ? 'bg-[#2a2a3a] text-slate-500' : 'bg-indigo-950 text-indigo-300'}`}>
                 {targetsLabel(rule)}
               </span>
-              <button onClick={() => handleEditRule(rule)} className="text-slate-400 hover:text-white text-sm shrink-0">&#9999;</button>
-              <button onClick={() => handleDeleteRule(rule.id)} className="text-slate-400 hover:text-red-400 text-sm shrink-0">&times;</button>
+              <button onClick={() => handleEditRule(rule)} className="text-slate-400 hover:text-white text-sm shrink-0" title="Edit rule">&#9999;</button>
+              <button onClick={() => handleDeleteRule(rule.id)} className="text-slate-400 hover:text-red-400 text-sm shrink-0" title="Delete rule">&times;</button>
             </div>
           ))}
         </div>
@@ -280,8 +280,8 @@ export default function RulesPage() {
               <span className={`text-xs px-2 py-0.5 rounded-full ${STATUS_CHIP[item.status]}`}>{item.status}</span>
               {item.status === 'pending' && (
                 <>
-                  <button onClick={() => handleExecuteItem(item.id)} className="text-xs px-2 py-0.5 bg-amber-700/80 hover:bg-amber-600/80 text-white rounded-lg">Trigger</button>
-                  <button onClick={() => handleCancelItem(item.id)} className="text-slate-400 hover:text-red-400 text-xs">&times;</button>
+                  <button onClick={() => handleExecuteItem(item.id)} className="text-xs px-2 py-0.5 bg-amber-700/80 hover:bg-amber-600/80 text-white rounded-lg" title="Execute now">Trigger</button>
+                  <button onClick={() => handleCancelItem(item.id)} className="text-slate-400 hover:text-red-400 text-xs" title="Cancel">&times;</button>
                 </>
               )}
             </div>
