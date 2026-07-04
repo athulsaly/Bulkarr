@@ -3,47 +3,51 @@ import type { DefaultsConfig, Cache } from '@/lib/types'
 
 interface Props {
   target: 'movies' | 'series'
-  onTargetChange: (t: 'movies' | 'series') => void
-  activeMode: 'add' | 'manage'
-  onModeChange: (m: 'add' | 'manage') => void
+  onTargetChange?: (t: 'movies' | 'series') => void
+  activeMode?: 'add' | 'manage'
+  onModeChange?: (m: 'add' | 'manage') => void
   defaults: DefaultsConfig
   onDefaultsChange: (patch: Partial<DefaultsConfig>) => void
   cache: Cache
 }
 
-export function DefaultsBar({ target, onTargetChange, activeMode, onModeChange, defaults, onDefaultsChange, cache }: Props) {
+export function DefaultsBar({ target, onTargetChange, activeMode = 'add', onModeChange, defaults, onDefaultsChange, cache }: Props) {
   const profiles = (target === 'movies' ? cache.radarr?.profiles : cache.sonarr?.profiles) ?? []
   const rootFolders = (target === 'movies' ? cache.radarr?.rootFolders : cache.sonarr?.rootFolders) ?? []
 
-  const sel = 'rounded bg-slate-700 border border-slate-600 px-2 py-1 text-sm focus:outline-none focus:border-orange-500'
+  const sel = 'rounded bg-[#1c1c28] border border-[#2a2a3a] px-2 py-1 text-sm focus:outline-none focus:border-indigo-500 text-slate-200'
 
   return (
-    <div className="flex flex-wrap items-center gap-3 px-4 py-2 bg-slate-800 border-b border-slate-700 text-sm">
-      {/* Movies / Series tab */}
-      <div className="flex rounded overflow-hidden border border-slate-600">
-        {(['movies', 'series'] as const).map(t => (
-          <button
-            key={t}
-            onClick={() => onTargetChange(t)}
-            className={`px-3 py-1 text-xs font-medium transition-colors ${target === t ? 'bg-orange-600 text-white' : 'bg-slate-800 text-slate-400 hover:text-white'}`}
-          >
-            {t === 'movies' ? 'Movies' : 'Series'}
-          </button>
-        ))}
-      </div>
+    <div className="flex flex-wrap items-center gap-3 px-4 py-2 bg-[#161620] border-b border-[#2a2a3a] text-sm shrink-0">
+      {/* Movies / Series tab — only when caller provides handler */}
+      {onTargetChange && (
+        <div className="flex rounded overflow-hidden border border-[#2a2a3a]">
+          {(['movies', 'series'] as const).map(t => (
+            <button
+              key={t}
+              onClick={() => onTargetChange(t)}
+              className={`px-3 py-1 text-xs font-medium transition-colors ${target === t ? 'bg-indigo-600 text-white' : 'bg-[#1c1c28] text-slate-400 hover:text-white'}`}
+            >
+              {t === 'movies' ? 'Movies' : 'Series'}
+            </button>
+          ))}
+        </div>
+      )}
 
-      {/* Add / Manage mode toggle */}
-      <div className="flex rounded overflow-hidden border border-slate-600">
-        {(['add', 'manage'] as const).map(m => (
-          <button
-            key={m}
-            onClick={() => onModeChange(m)}
-            className={`px-3 py-1 text-xs font-medium transition-colors capitalize ${activeMode === m ? 'bg-slate-600 text-white' : 'bg-slate-800 text-slate-400 hover:text-white'}`}
-          >
-            {m === 'add' ? 'Add' : 'Manage'}
-          </button>
-        ))}
-      </div>
+      {/* Add / Manage mode toggle — only when caller provides handler */}
+      {onModeChange && (
+        <div className="flex rounded overflow-hidden border border-[#2a2a3a]">
+          {(['add', 'manage'] as const).map(m => (
+            <button
+              key={m}
+              onClick={() => onModeChange(m)}
+              className={`px-3 py-1 text-xs font-medium transition-colors capitalize ${activeMode === m ? 'bg-[#2a2a3a] text-white' : 'bg-[#1c1c28] text-slate-400 hover:text-white'}`}
+            >
+              {m}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Add-mode-only controls */}
       {activeMode === 'add' && (
@@ -71,7 +75,7 @@ export function DefaultsBar({ target, onTargetChange, activeMode, onModeChange, 
               type="checkbox"
               checked={defaults.monitored}
               onChange={e => onDefaultsChange({ monitored: e.target.checked })}
-              className="accent-orange-500"
+              className="accent-indigo-500"
             />
             Monitored
           </label>
@@ -93,7 +97,7 @@ export function DefaultsBar({ target, onTargetChange, activeMode, onModeChange, 
               type="checkbox"
               checked={defaults.searchOnAdd}
               onChange={e => onDefaultsChange({ searchOnAdd: e.target.checked })}
-              className="accent-orange-500"
+              className="accent-indigo-500"
             />
             Search on Add
           </label>
@@ -114,7 +118,7 @@ export function DefaultsBar({ target, onTargetChange, activeMode, onModeChange, 
                   type="checkbox"
                   checked={defaults.seasonFolder ?? true}
                   onChange={e => onDefaultsChange({ seasonFolder: e.target.checked })}
-                  className="accent-orange-500"
+                  className="accent-indigo-500"
                 />
                 Season Folder
               </label>
