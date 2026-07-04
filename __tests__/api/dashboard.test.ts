@@ -2,6 +2,7 @@
 
 import { GET } from '@/app/api/dashboard/route'
 import { NextRequest } from 'next/server'
+import type { WatchedEvent } from '@/lib/types'
 
 const mockStore = {
   cache: {
@@ -15,6 +16,11 @@ const mockStore = {
     { id: 'h2', title: 'B', target: 'movies', addedAt: 2000 },
     { id: 'h3', title: 'C', target: 'movies', addedAt: 1000 },
   ],
+  watchedEvents: [
+    { id: 'w1', matchStatus: 'matched', watchedAt: 3000, mediaType: 'movie', title: 'Film A', progressPct: 95, source: 'webhook', mediaServer: 'jellyfin' },
+    { id: 'w2', matchStatus: 'unmatched', watchedAt: 2000, mediaType: 'movie', title: 'Film B', progressPct: 95, source: 'webhook', mediaServer: 'jellyfin' },
+    { id: 'w3', matchStatus: 'matched', watchedAt: 1000, mediaType: 'episode', title: 'Show C Ep 1', progressPct: 95, source: 'poll', mediaServer: 'plex' },
+  ] as WatchedEvent[],
 }
 
 jest.mock('@/lib/store', () => ({
@@ -48,4 +54,23 @@ test('handles null cache gracefully', async () => {
   const body = await res.json()
   expect(body.movies).toBe(0)
   expect(body.series).toBe(0)
+})
+
+test('recentWatched includes only matched events', async () => {
+  const req = new NextRequest('http://localhost/api/dashboard')
+  const res = await GET(req)
+  const body = await res.json()
+  expect(body.recentWatched).toHaveLength(2)
+  expect(body.recentWatched.every((e: WatchedEvent) => e.matchStatus === 'matched')).toBe(true)
+  expect(body.recentWatched[0].id).toBe('w1')
+})
+
+test('recentWatched is empty when no matched events exist', async () => {
+  const saved = mockStore.watchedEvents
+  mockStore.watchedEvents = [{ id: 'w2', matchStatus: 'unmatched', watchedAt: 2000, mediaType: 'movie', title: 'Film B', progressPct: 95, source: 'webhook', mediaServer: 'jellyfin' }] as WatchedEvent[]
+  const req = new NextRequest('http://localhost/api/dashboard')
+  const res = await GET(req)
+  const body = await res.json()
+  expect(body.recentWatched).toHaveLength(0)
+  mockStore.watchedEvents = saved
 })

@@ -13,5 +13,8 @@ export async function GET(_req: NextRequest) {
     recentHistory: [...store.history]
       .sort((a, b) => b.addedAt - a.addedAt)
       .slice(0, 5),
+    recentWatched: store.watchedEvents
+      .filter(e => e.matchStatus === 'matched')
+      .slice(0, 10),
   })
 }
