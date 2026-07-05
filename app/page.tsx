@@ -17,7 +17,9 @@ interface DashboardData {
 }
 
 function delayLabel(r: AutoDeleteRule): string {
-  return r.delayUnit === 'year' ? '1 year' : `${r.delayAmount} ${r.delayUnit}`
+  return r.delayUnit === 'year'
+    ? `${r.delayAmount} year${r.delayAmount === 1 ? '' : 's'}`
+    : `${r.delayAmount} ${r.delayUnit}`
 }
 
 export default function DashboardPage() {
