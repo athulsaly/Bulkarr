@@ -5,7 +5,7 @@ import { Spinner } from '@/components/Spinner'
 import { StatCard } from '@/components/StatCard'
 import { useToast } from '@/hooks/useToast'
 import { ToastStack } from '@/components/ToastStack'
-import type { HistoryItem, WatchedEvent, AutoDeleteRule } from '@/lib/types'
+import type { HistoryItem, WatchedEvent, AutoDeleteRule, NowPlayingItem } from '@/lib/types'
 
 interface DashboardData {
   movies: number
@@ -14,6 +14,7 @@ interface DashboardData {
   pendingQueue: number
   recentHistory: HistoryItem[]
   recentWatched: WatchedEvent[]
+  nowPlaying: NowPlayingItem[]
 }
 
 function delayLabel(r: AutoDeleteRule): string {
@@ -39,7 +40,7 @@ export default function DashboardPage() {
         setRules(rulesData.rules ?? [])
       })
       .catch(() => {
-        setData({ movies: 0, series: 0, activeRules: 0, pendingQueue: 0, recentHistory: [], recentWatched: [] })
+        setData({ movies: 0, series: 0, activeRules: 0, pendingQueue: 0, recentHistory: [], recentWatched: [], nowPlaying: [] })
         setRules([])
       })
   }, [])
@@ -96,6 +97,55 @@ export default function DashboardPage() {
             <StatCard icon="⚡" label="Active Rules" value={data.activeRules} accent />
             <StatCard icon="⏳" label="Queue Pending" value={data.pendingQueue} />
           </div>
+
+          {/* Now Playing */}
+          {data.nowPlaying.length > 0 && (
+            <div>
+              <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-widest mb-3 flex items-center gap-2">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500" />
+                </span>
+                Now Playing
+              </h2>
+              <div className="rounded-xl border border-[#2a2a3a] bg-[#1c1c28] divide-y divide-[#2a2a3a]">
+                {data.nowPlaying.map(item => {
+                  const displayTitle = item.mediaType === 'episode'
+                    ? (item.seriesTitle ?? item.title)
+                    : item.title
+                  const episodeSuffix =
+                    item.mediaType === 'episode' &&
+                    item.seasonNumber != null &&
+                    item.episodeNumber != null
+                      ? ` · S${String(item.seasonNumber).padStart(2, '0')}E${String(item.episodeNumber).padStart(2, '0')}`
+                      : null
+                  return (
+                    <div key={item.sessionId} className="flex items-center gap-3 px-4 py-3">
+                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium shrink-0 ${
+                        item.mediaType === 'movie'
+                          ? 'bg-blue-900/50 text-blue-300'
+                          : 'bg-purple-900/50 text-purple-300'
+                      }`}>
+                        {item.mediaType === 'movie' ? 'Movie' : 'Series'}
+                      </span>
+                      <span className="text-slate-100 text-sm font-medium truncate">
+                        {displayTitle}
+                        {episodeSuffix && (
+                          <span className="text-slate-400 font-normal">{episodeSuffix}</span>
+                        )}
+                      </span>
+                      <span className="ml-auto text-slate-500 text-xs shrink-0">
+                        {item.progressPct > 0 ? `${Math.round(item.progressPct)}%` : ''}
+                      </span>
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-green-900/40 text-green-400 shrink-0">
+                        {item.mediaServer}
+                      </span>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
 
           {/* Recently Played */}
           {data.recentWatched.length > 0 && (

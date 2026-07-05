@@ -14,6 +14,7 @@ const DEFAULT_STORE: Store = {
   sessions: { movies: null, series: null },
   history: [],
   watchedEvents: [],
+  nowPlaying: [],
   lastPolledAt: {},
   rules: [],
   deletionQueue: [],

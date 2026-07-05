@@ -4,7 +4,7 @@ import { matchWatchedEvent } from '@/lib/media-matcher'
 import { isDuplicate } from '@/lib/media-dedup'
 import { enqueueRuleMatches } from '@/lib/deletion-executor'
 import { v4 as uuidv4 } from 'uuid'
-import type { WatchedEvent } from '@/lib/types'
+import type { WatchedEvent, NowPlayingItem } from '@/lib/types'
 
 export const runtime = 'nodejs'
 
@@ -23,12 +23,18 @@ interface PlexWebhookPayload {
     viewOffset?: number
     duration?: number
   }
+  Player?: {
+    uuid?: string
+  }
 }
 
 function extractId(guids: PlexGuid[], scheme: string): number | undefined {
   const hit = guids.find(g => g.id.startsWith(`${scheme}://`))
   return hit ? Number(hit.id.slice(scheme.length + 3)) : undefined
 }
+
+const NOW_PLAYING_EVENTS = new Set(['media.play', 'media.pause', 'media.resume'])
+const STOP_EVENTS = new Set(['media.stop', 'media.scrobble'])
 
 export async function POST(req: NextRequest) {
   let body: PlexWebhookPayload | null = null
@@ -41,20 +47,49 @@ export async function POST(req: NextRequest) {
   }
 
   if (!body?.event || !body.Metadata) return NextResponse.json({}, { status: 200 })
-  const { event, Metadata } = body
-  if (event !== 'media.scrobble' && event !== 'media.stop') return NextResponse.json({}, { status: 200 })
+  const { event, Metadata, Player } = body
 
   const mediaType = Metadata.type === 'movie' ? 'movie' : Metadata.type === 'episode' ? 'episode' : null
   if (!mediaType) return NextResponse.json({}, { status: 200 })
 
+  const sessionId = Player?.uuid ?? 'plex-unknown'
+  const progressPct = Metadata.viewOffset != null && Metadata.duration && Metadata.duration > 0
+    ? Math.min((Metadata.viewOffset / Metadata.duration) * 100, 100)
+    : event === 'media.scrobble' ? 100 : 0
+
+  // Currently playing — upsert into nowPlaying
+  if (NOW_PLAYING_EVENTS.has(event)) {
+    const item: NowPlayingItem = {
+      sessionId,
+      mediaServer: 'plex',
+      mediaType,
+      title: Metadata.title ?? 'Unknown',
+      year: Metadata.year,
+      seriesTitle: Metadata.grandparentTitle,
+      seasonNumber: Metadata.parentIndex,
+      episodeNumber: Metadata.index,
+      progressPct,
+      updatedAt: Date.now(),
+    }
+    updateStore(s => {
+      const idx = s.nowPlaying.findIndex(i => i.sessionId === sessionId)
+      if (idx === -1) s.nowPlaying.push(item)
+      else s.nowPlaying[idx] = item
+    })
+    return NextResponse.json({}, { status: 200 })
+  }
+
+  if (!STOP_EVENTS.has(event)) return NextResponse.json({}, { status: 200 })
+
+  // Remove from nowPlaying on stop/scrobble
+  updateStore(s => {
+    s.nowPlaying = s.nowPlaying.filter(i => i.sessionId !== sessionId)
+  })
+
   const store = readStore()
   const threshold = store.settings.mediaServer.watchedThresholdPct
-  const progressPct = event === 'media.scrobble'
-    ? 100
-    : Metadata.viewOffset != null && Metadata.duration && Metadata.duration > 0
-      ? (Metadata.viewOffset / Metadata.duration) * 100
-      : 0
-  if (progressPct < threshold) return NextResponse.json({}, { status: 200 })
+  const finalProgress = event === 'media.scrobble' ? 100 : progressPct
+  if (finalProgress < threshold) return NextResponse.json({}, { status: 200 })
 
   const guids = Metadata.Guid ?? []
   const watchedEvent: WatchedEvent = {
@@ -69,7 +104,7 @@ export async function POST(req: NextRequest) {
     seriesTitle: Metadata.grandparentTitle,
     seasonNumber: Metadata.parentIndex,
     episodeNumber: Metadata.index,
-    progressPct: Math.min(progressPct, 100),
+    progressPct: finalProgress,
     watchedAt: Date.now(),
     matchStatus: 'pending',
   }

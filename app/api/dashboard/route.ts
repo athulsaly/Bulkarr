@@ -16,5 +16,6 @@ export async function GET(_req: NextRequest) {
     recentWatched: store.watchedEvents
       .filter(e => e.matchStatus === 'matched')
       .slice(0, 10),
+    nowPlaying: store.nowPlaying,
   })
 }

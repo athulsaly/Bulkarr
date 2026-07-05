@@ -162,12 +162,26 @@ export interface DeletionQueueItem {
   errorMessage?: string
 }
 
+export interface NowPlayingItem {
+  sessionId: string
+  mediaServer: MediaServerType
+  mediaType: 'movie' | 'episode'
+  title: string
+  seriesTitle?: string
+  seasonNumber?: number
+  episodeNumber?: number
+  year?: number
+  progressPct: number
+  updatedAt: number
+}
+
 export interface Store {
   settings: Settings
   cache: Cache
   sessions: { movies: Session | null; series: Session | null }
   history: HistoryItem[]
   watchedEvents: WatchedEvent[]
+  nowPlaying: NowPlayingItem[]
   lastPolledAt: Partial<Record<MediaServerType, number>>
   rules: AutoDeleteRule[]
   deletionQueue: DeletionQueueItem[]
