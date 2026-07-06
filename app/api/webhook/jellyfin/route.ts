@@ -34,7 +34,13 @@ export async function POST(req: NextRequest) {
     rawText = await req.text()
     body = JSON.parse(rawText) as JellyfinWebhookPayload
   } catch { /* body stays null */ }
-  appendWebhookLog({ ts: Date.now(), source: 'jellyfin', body: body ?? rawText ?? null })
+  appendWebhookLog({
+    ts: Date.now(),
+    source: 'jellyfin',
+    body: body ?? rawText ?? null,
+    contentType: req.headers.get('content-type'),
+    method: req.method,
+  })
   if (!body) return NextResponse.json({}, { status: 200 })
 
   const notifType = body.NotificationType

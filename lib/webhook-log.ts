@@ -3,6 +3,8 @@ export interface WebhookLogEntry {
   ts: number
   source: 'jellyfin' | 'plex'
   body: unknown
+  contentType?: string | null
+  method?: string
 }
 
 const MAX = 20
