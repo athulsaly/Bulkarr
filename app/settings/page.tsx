@@ -93,10 +93,41 @@ function MediaServerSection({ name, label, placeholder, hook, onToast }: { name:
   const [apiKey, setApiKey] = useState('')
   const [testResult, setTestResult] = useState<{ ok: boolean; error?: string } | null>(null)
   const [testLoading, setTestLoading] = useState(false)
+  const [webhookTesting, setWebhookTesting] = useState(false)
   const [origin, setOrigin] = useState('')
 
   useEffect(() => { setUrl(existing?.url ?? ''); setApiKey('') }, [existing?.url])
   useEffect(() => { setOrigin(window.location.origin) }, [])
+
+  const handleTestWebhook = async () => {
+    setWebhookTesting(true)
+    try {
+      if (name === 'jellyfin') {
+        await fetch('/api/webhook/jellyfin', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            NotificationType: 'PlaybackStart',
+            Item: { Type: 'Movie', Name: 'Webhook Test', ProductionYear: 2024 },
+            Session: { Id: 'bulkarr-ui-test' },
+          }),
+        })
+      } else {
+        const form = new FormData()
+        form.append('payload', JSON.stringify({
+          event: 'media.play',
+          Metadata: { type: 'movie', title: 'Webhook Test', year: 2024 },
+          Player: { uuid: 'bulkarr-ui-test' },
+        }))
+        await fetch('/api/webhook/plex', { method: 'POST', body: form })
+      }
+      onToast('Test event sent — check Now Playing on the Dashboard', 'success')
+    } catch {
+      onToast('Failed to send test event', 'error')
+    } finally {
+      setWebhookTesting(false)
+    }
+  }
 
   const handleSave = async () => {
     const config = apiKey ? { url, apiKey } : { url, apiKey: existing?.apiKey ?? '' }
@@ -145,7 +176,17 @@ function MediaServerSection({ name, label, placeholder, hook, onToast }: { name:
         <div className="flex gap-1.5">
           <input readOnly value={webhookUrl} className="flex-1 rounded-lg bg-[#0f0f12] px-2 py-1 text-xs text-slate-400 border border-[#2a2a3a] focus:outline-none" />
           <button onClick={() => navigator.clipboard.writeText(webhookUrl).then(() => onToast('Copied', 'info'))} className="rounded-lg bg-white/5 hover:bg-white/10 px-2 py-1 text-xs transition-colors">Copy</button>
+          <button
+            onClick={handleTestWebhook}
+            disabled={webhookTesting}
+            className="flex items-center gap-1 rounded-lg bg-white/5 hover:bg-white/10 px-2 py-1 text-xs transition-colors disabled:opacity-50"
+            title="Send a test PlaybackStart event to verify the webhook pipeline"
+          >
+            {webhookTesting ? <Spinner className="w-3 h-3" /> : null}
+            {webhookTesting ? 'Sending…' : 'Send test'}
+          </button>
         </div>
+        <p className="mt-1 text-xs text-slate-600">Paste this URL into {label}&apos;s webhook settings. &ldquo;Send test&rdquo; fires a fake play event — check Now Playing on the Dashboard.</p>
       </div>
     </div>
   )
