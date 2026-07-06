@@ -25,6 +25,7 @@ RUN apk upgrade --no-cache && apk add --no-cache su-exec
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV PORT=1947
+ENV HOSTNAME=0.0.0.0
 ENV DATA_DIR=/app/data
 
 RUN addgroup --system --gid 1001 nodejs
