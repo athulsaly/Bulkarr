@@ -39,6 +39,7 @@ export function readStore(): Store {
     if (raw.cache) Object.assign(store.cache, raw.cache)
     if (raw.sessions) Object.assign(store.sessions, raw.sessions)
     if (Array.isArray(raw.history)) store.history = raw.history
+    if (Array.isArray(raw.nowPlaying)) store.nowPlaying = raw.nowPlaying
     if (Array.isArray(raw.watchedEvents)) {
       store.watchedEvents = (raw.watchedEvents as typeof store.watchedEvents)
         .sort((a, b) => b.watchedAt - a.watchedAt)
