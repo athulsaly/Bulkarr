@@ -5,7 +5,7 @@ export const runtime = 'nodejs'
 
 export async function GET() {
   const store = readStore()
-  return NextResponse.json({ events: store.watchedEvents, lastPolledAt: store.lastPolledAt })
+  return NextResponse.json({ events: store.watchedEvents, nowPlaying: store.nowPlaying, lastPolledAt: store.lastPolledAt })
 }
 
 export async function DELETE(req: NextRequest) {
