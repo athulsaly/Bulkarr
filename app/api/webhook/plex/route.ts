@@ -5,6 +5,7 @@ import { isDuplicate } from '@/lib/media-dedup'
 import { enqueueRuleMatches } from '@/lib/deletion-executor'
 import { v4 as uuidv4 } from 'uuid'
 import type { WatchedEvent, NowPlayingItem } from '@/lib/types'
+import { appendWebhookLog } from '@/lib/webhook-log'
 
 export const runtime = 'nodejs'
 
@@ -46,6 +47,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({}, { status: 200 })
   }
 
+  appendWebhookLog({ ts: Date.now(), source: 'plex', body })
   if (!body?.event || !body.Metadata) return NextResponse.json({}, { status: 200 })
   const { event, Metadata, Player } = body
 
