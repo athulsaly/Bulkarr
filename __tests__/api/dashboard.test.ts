@@ -56,21 +56,21 @@ test('handles null cache gracefully', async () => {
   expect(body.series).toBe(0)
 })
 
-test('recentWatched includes only matched events', async () => {
+test('recentWatched includes all events regardless of matchStatus', async () => {
   const req = new NextRequest('http://localhost/api/dashboard')
   const res = await GET(req)
   const body = await res.json()
-  expect(body.recentWatched).toHaveLength(2)
-  expect(body.recentWatched.every((e: WatchedEvent) => e.matchStatus === 'matched')).toBe(true)
+  expect(body.recentWatched).toHaveLength(3)
   expect(body.recentWatched[0].id).toBe('w1')
 })
 
-test('recentWatched is empty when no matched events exist', async () => {
+test('recentWatched includes unmatched events', async () => {
   const saved = mockStore.watchedEvents
   mockStore.watchedEvents = [{ id: 'w2', matchStatus: 'unmatched', watchedAt: 2000, mediaType: 'movie', title: 'Film B', progressPct: 95, source: 'webhook', mediaServer: 'jellyfin' }] as WatchedEvent[]
   const req = new NextRequest('http://localhost/api/dashboard')
   const res = await GET(req)
   const body = await res.json()
-  expect(body.recentWatched).toHaveLength(0)
+  expect(body.recentWatched).toHaveLength(1)
+  expect(body.recentWatched[0].matchStatus).toBe('unmatched')
   mockStore.watchedEvents = saved
 })
