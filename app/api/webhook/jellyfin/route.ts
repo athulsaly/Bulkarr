@@ -28,8 +28,13 @@ interface JellyfinWebhookPayload {
 }
 
 export async function POST(req: NextRequest) {
-  const body = await req.json().catch(() => null) as JellyfinWebhookPayload | null
-  appendWebhookLog({ ts: Date.now(), source: 'jellyfin', body })
+  let body: JellyfinWebhookPayload | null = null
+  let rawText = ''
+  try {
+    rawText = await req.text()
+    body = JSON.parse(rawText) as JellyfinWebhookPayload
+  } catch { /* body stays null */ }
+  appendWebhookLog({ ts: Date.now(), source: 'jellyfin', body: body ?? rawText ?? null })
   if (!body) return NextResponse.json({}, { status: 200 })
 
   const notifType = body.NotificationType
