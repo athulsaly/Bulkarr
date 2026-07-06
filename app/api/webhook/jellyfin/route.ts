@@ -5,7 +5,6 @@ import { isDuplicate } from '@/lib/media-dedup'
 import { enqueueRuleMatches } from '@/lib/deletion-executor'
 import { v4 as uuidv4 } from 'uuid'
 import type { WatchedEvent, NowPlayingItem } from '@/lib/types'
-import { appendWebhookLog } from '@/lib/webhook-log'
 
 export const runtime = 'nodejs'
 
@@ -28,19 +27,7 @@ interface JellyfinWebhookPayload {
 }
 
 export async function POST(req: NextRequest) {
-  let body: JellyfinWebhookPayload | null = null
-  let rawText = ''
-  try {
-    rawText = await req.text()
-    body = JSON.parse(rawText) as JellyfinWebhookPayload
-  } catch { /* body stays null */ }
-  appendWebhookLog({
-    ts: Date.now(),
-    source: 'jellyfin',
-    body: body ?? rawText ?? null,
-    contentType: req.headers.get('content-type'),
-    method: req.method,
-  })
+  const body = await req.json().catch(() => null) as JellyfinWebhookPayload | null
   if (!body) return NextResponse.json({}, { status: 200 })
 
   const notifType = body.NotificationType
