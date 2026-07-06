@@ -9,22 +9,22 @@ import { appendWebhookLog } from '@/lib/webhook-log'
 
 export const runtime = 'nodejs'
 
+// Jellyfin webhook plugin sends a flat structure (not nested Item/Session)
 interface JellyfinWebhookPayload {
   NotificationType?: string
-  Item?: {
-    Type?: string
-    Name?: string
-    ProductionYear?: number
-    SeriesName?: string
-    ParentIndexNumber?: number
-    IndexNumber?: number
-    ProviderIds?: { Tmdb?: string; Tvdb?: string }
-    RunTimeTicks?: number
-  }
-  Session?: {
-    Id?: string
-    PlayState?: { PositionTicks?: number }
-  }
+  ItemType?: string
+  Name?: string
+  Year?: number
+  RunTimeTicks?: number
+  PlaybackPositionTicks?: number
+  Id?: string           // playback session ID
+  IsPaused?: boolean
+  Provider_tmdb?: string
+  Provider_tvdb?: string
+  // Episode fields
+  SeriesName?: string
+  ParentIndexNumber?: number  // season number
+  IndexNumber?: number        // episode number
 }
 
 export async function POST(req: NextRequest) {
@@ -44,13 +44,13 @@ export async function POST(req: NextRequest) {
   if (!body) return NextResponse.json({}, { status: 200 })
 
   const notifType = body.NotificationType
-  const itemType = body.Item?.Type
+  const itemType = body.ItemType
   if (itemType !== 'Movie' && itemType !== 'Episode') return NextResponse.json({}, { status: 200 })
 
   const mediaType = itemType === 'Movie' ? 'movie' : 'episode'
-  const sessionId = body.Session?.Id ?? 'jellyfin-unknown'
-  const runTicks = body.Item?.RunTimeTicks ?? 0
-  const posTicks = body.Session?.PlayState?.PositionTicks ?? 0
+  const sessionId = body.Id ?? 'jellyfin-unknown'
+  const runTicks = body.RunTimeTicks ?? 0
+  const posTicks = body.PlaybackPositionTicks ?? 0
   const progressPct = runTicks > 0 ? Math.min((posTicks / runTicks) * 100, 100) : 0
 
   // Currently playing — upsert into nowPlaying
@@ -59,11 +59,11 @@ export async function POST(req: NextRequest) {
       sessionId,
       mediaServer: 'jellyfin',
       mediaType,
-      title: body.Item?.Name ?? 'Unknown',
-      year: body.Item?.ProductionYear,
-      seriesTitle: body.Item?.SeriesName,
-      seasonNumber: body.Item?.ParentIndexNumber,
-      episodeNumber: body.Item?.IndexNumber,
+      title: body.Name ?? 'Unknown',
+      year: body.Year,
+      seriesTitle: body.SeriesName,
+      seasonNumber: body.ParentIndexNumber,
+      episodeNumber: body.IndexNumber,
       progressPct,
       updatedAt: Date.now(),
     }
@@ -91,13 +91,13 @@ export async function POST(req: NextRequest) {
     source: 'webhook',
     mediaServer: 'jellyfin',
     mediaType,
-    title: body.Item?.Name ?? 'Unknown',
-    year: body.Item?.ProductionYear,
-    tmdbId: body.Item?.ProviderIds?.Tmdb ? Number(body.Item.ProviderIds.Tmdb) : undefined,
-    tvdbId: body.Item?.ProviderIds?.Tvdb ? Number(body.Item.ProviderIds.Tvdb) : undefined,
-    seriesTitle: body.Item?.SeriesName,
-    seasonNumber: body.Item?.ParentIndexNumber,
-    episodeNumber: body.Item?.IndexNumber,
+    title: body.Name ?? 'Unknown',
+    year: body.Year,
+    tmdbId: body.Provider_tmdb ? Number(body.Provider_tmdb) : undefined,
+    tvdbId: body.Provider_tvdb ? Number(body.Provider_tvdb) : undefined,
+    seriesTitle: body.SeriesName,
+    seasonNumber: body.ParentIndexNumber,
+    episodeNumber: body.IndexNumber,
     progressPct,
     watchedAt: Date.now(),
     matchStatus: 'pending',
